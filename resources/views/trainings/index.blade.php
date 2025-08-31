@@ -46,6 +46,14 @@
                 </div>
                 <div class="flex gap-3">
                     <div>
+                        <select id="classificationFilter" class="rounded border-0 bg-neutral-50 px-3 py-2 text-sm ring-1 ring-inset ring-neutral-300 dark:bg-neutral-800 dark:ring-neutral-600 focus:ring-2 focus:ring-blue-500">
+                            <option value="">{{ __('All Classifications') }}</option>
+                            <option value="external" {{ request('classification_filter') === 'external' ? 'selected' : '' }}>{{ __('External') }}</option>
+                            <option value="organized" {{ request('classification_filter') === 'organized' ? 'selected' : '' }}>{{ __('Organized') }}</option>
+                            <option value="drills" {{ request('classification_filter') === 'drills' ? 'selected' : '' }}>{{ __('Drills') }}</option>
+                        </select>
+                    </div>
+                    <div>
                         <input type="date" 
                                id="dateFilter" 
                                value="{{ request('date_filter') }}"
@@ -66,11 +74,14 @@
                 </div>
             </div>
             
-            @if(request('search') || request('date_filter'))
+            @if(request('search') || request('date_filter') || request('classification_filter'))
                 <div class="mt-3 text-sm text-neutral-500 dark:text-neutral-400">
                     {{ __('Showing :count results', ['count' => $trainings->total()]) }}
                     @if(request('search'))
                         {{ __('matching ":search"', ['search' => request('search')]) }}
+                    @endif
+                    @if(request('classification_filter'))
+                        {{ __('for :classification trainings', ['classification' => ucfirst(request('classification_filter'))]) }}
                     @endif
                     @if(request('date_filter'))
                         @php
@@ -96,6 +107,9 @@
                                 {{ __('Training Name') }}
                             </th>
                             <th class="border-b border-neutral-200 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+                                {{ __('Classification') }}
+                            </th>
+                            <th class="border-b border-neutral-200 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
                                 {{ __('Organized By') }}
                             </th>
                             <th class="border-b border-neutral-200 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
@@ -114,6 +128,23 @@
                             <tr class="hover:bg-neutral-50 dark:hover:bg-neutral-700">
                                 <td class="px-6 py-4 text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                     {{ $training->name }}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-neutral-700 dark:text-neutral-300">
+                                    @if($training->training_classification)
+                                        @php
+                                            $classificationColors = [
+                                                'external' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
+                                                'organized' => 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
+                                                'drills' => 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
+                                            ];
+                                            $colorClass = $classificationColors[$training->training_classification] ?? 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
+                                        @endphp
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $colorClass }}">
+                                            {{ ucfirst($training->training_classification) }}
+                                        </span>
+                                    @else
+                                        <span class="text-neutral-500 text-xs">{{ __('Not specified') }}</span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 text-sm text-neutral-700 dark:text-neutral-300">
                                     {{ $training->organized_by }}
@@ -176,16 +207,16 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-6 py-12 text-center">
+                                <td colspan="6" class="px-6 py-12 text-center">
                                     <div class="flex flex-col items-center justify-center">
-                                        @if(request('search') || request('date_filter'))
+                                        @if(request('search') || request('date_filter') || request('classification_filter'))
                                             <svg class="mx-auto size-12 text-neutral-400 dark:text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                             </svg>
                                             <h3 class="mt-4 text-lg font-medium text-neutral-900 dark:text-neutral-100">{{ __('No trainings found') }}</h3>
                                             <p class="mt-1 text-sm text-neutral-500 dark:text-neutral-400">{{ __('No trainings match your search criteria.') }}</p>
                                             <div class="mt-4">
-                                                <button type="button" onclick="document.getElementById('searchTraining').value=''; document.getElementById('dateFilter').value=''; document.getElementById('dateFilterType').value='exact'; location.reload();" 
+                                                <button type="button" onclick="document.getElementById('searchTraining').value=''; document.getElementById('dateFilter').value=''; document.getElementById('dateFilterType').value='exact'; document.getElementById('classificationFilter').value=''; location.reload();" 
                                                        class="inline-flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-medium text-white transition-colors">
                                                     {{ __('Clear Filters') }}
                                                 </button>
@@ -216,6 +247,7 @@
             const searchInput = document.getElementById('searchTraining');
             const dateFilter = document.getElementById('dateFilter');
             const dateFilterType = document.getElementById('dateFilterType');
+            const classificationFilter = document.getElementById('classificationFilter');
             const clearFiltersBtn = document.getElementById('clearFilters');
 
             let searchTimeout;
@@ -227,6 +259,13 @@
                     searchTimeout = setTimeout(() => {
                         applyFilters();
                     }, 500);
+                });
+            }
+            
+            // Classification filter functionality
+            if (classificationFilter) {
+                classificationFilter.addEventListener('change', function() {
+                    applyFilters();
                 });
             }
             
@@ -249,6 +288,7 @@
                     if (searchInput) searchInput.value = '';
                     if (dateFilter) dateFilter.value = '';
                     if (dateFilterType) dateFilterType.value = 'exact';
+                    if (classificationFilter) classificationFilter.value = '';
                     applyFilters();
                 });
             }
@@ -257,6 +297,7 @@
                 const search = searchInput ? searchInput.value : '';
                 const dateValue = dateFilter ? dateFilter.value : '';
                 const dateType = dateFilterType ? dateFilterType.value : 'exact';
+                const classification = classificationFilter ? classificationFilter.value : '';
                 
                 const url = new URL(window.location.href);
                 
@@ -264,6 +305,12 @@
                     url.searchParams.set('search', search);
                 } else {
                     url.searchParams.delete('search');
+                }
+                
+                if (classification) {
+                    url.searchParams.set('classification_filter', classification);
+                } else {
+                    url.searchParams.delete('classification_filter');
                 }
                 
                 if (dateValue) {

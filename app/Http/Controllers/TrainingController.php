@@ -7,7 +7,9 @@ use App\Exports\EnrolledParticipantsExport;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Models\Participant;
 
 class TrainingController extends Controller
 {
@@ -29,6 +31,11 @@ class TrainingController extends Controller
                   ->orWhere('course_facilitator', 'LIKE', "%{$search}%")
                   ->orWhere('instructor', 'LIKE', "%{$search}%");
             });
+        }
+        
+        // Apply classification filter - ADD THIS SECTION
+        if ($request->filled('classification_filter')) {
+            $query->where('training_classification', $request->get('classification_filter'));
         }
         
         // Apply date filter
@@ -116,20 +123,21 @@ class TrainingController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'training_classification' => 'required|string|in:external,organized,drills',
             'dates' => 'required|array|min:1',
-            'dates.*' => 'required|date|after_or_equal:today',
+            'dates.*' => 'required|date',
             'organized_by' => 'required|string|max:255',
             'requesting_party' => 'nullable|string|max:255',
             'venue' => 'nullable|string|max:255',
             'course_facilitator' => 'nullable|string|max:255',
             'instructor' => 'nullable|string|max:255',
         ]);
-
+    
         // Sort dates to ensure chronological order
         $validated['dates'] = collect($validated['dates'])->sort()->values()->toArray();
-
+    
         Training::create($validated);
-
+    
         return redirect()->route('trainings.index')
             ->with('success', 'Training created successfully.');
     }
@@ -157,20 +165,21 @@ class TrainingController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'training_classification' => 'required|string|in:external,organized,drills',
             'dates' => 'required|array|min:1',
-            'dates.*' => 'required|date|after_or_equal:today',
+            'dates.*' => 'required|date',
             'organized_by' => 'required|string|max:255',
             'requesting_party' => 'nullable|string|max:255',
             'venue' => 'nullable|string|max:255',
             'course_facilitator' => 'nullable|string|max:255',
             'instructor' => 'nullable|string|max:255',
         ]);
-
+    
         // Sort dates to ensure chronological order
         $validated['dates'] = collect($validated['dates'])->sort()->values()->toArray();
-
+    
         $training->update($validated);
-
+    
         return redirect()->route('trainings.index')
             ->with('success', 'Training updated successfully.');
     }
@@ -538,5 +547,148 @@ class TrainingController extends Controller
             'success' => true,
             'message' => "Updated {$count} participant(s) to {$statusLabel} status.",
         ]);
+    }
+
+    /**
+     * Store a new participant and automatically associate with training
+     */
+    public function storeParticipant(Request $request, Training $training)
+    {
+        $validated = $request->validate([
+            'id_no' => 'nullable|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'agency_organization' => 'nullable|string|max:255',
+            'position_designation' => 'nullable|string|max:255',
+            'sex' => 'required|in:male,female',
+            'vulnerable_groups' => 'nullable|array',
+            'vulnerable_groups.*' => 'string|in:Persons with Disabilities (PWDs),Senior Citizens,Pregnant',
+        ]);
+    
+        // Create the new participant
+        $participant = Participant::create($validated);
+    
+        // Automatically associate the participant with the training
+        $training->participants()->attach($participant->id, [
+            'completion_status' => 'enrolled',
+            'certificate' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    
+        return response()->json([
+            'success' => true,
+            'message' => 'Participant added and enrolled in training successfully.',
+            'participant' => [
+                'id' => $participant->id,
+                'full_name' => $participant->full_name,
+                'agency_organization' => $participant->agency_organization,
+                'position_designation' => $participant->position_designation,
+            ]
+        ]);
+    }
+
+    public function uploadExcelParticipants(Request $request, Training $training)
+    {
+        $request->validate([
+            'excel_file' => 'required|file|mimes:xlsx,xls|max:2048'
+        ]);
+    
+        try {
+            $file = $request->file('excel_file');
+            $data = Excel::toArray([], $file)[0]; // Get first sheet
+            
+            // Remove header row
+            array_shift($data);
+            
+            $added = 0;
+            $skipped = 0;
+            $errors = [];
+            $skippedRows = []; // Add this to track skipped participants with details
+            
+            foreach ($data as $index => $row) {
+                $rowNumber = $index + 2; // +2 because we removed header and arrays are 0-indexed
+                
+                // Skip empty rows
+                if (empty(array_filter($row))) {
+                    continue;
+                }
+                
+                try {
+                    // Map Excel columns to participant fields
+                    $participantData = [
+                        'id_no' => $row[0] ?? null,
+                        'first_name' => $row[1] ?? null,
+                        'middle_name' => $row[2] ?? null,
+                        'last_name' => $row[3] ?? null,
+                        'agency_organization' => $row[4] ?? null,
+                        'position_designation' => $row[5] ?? null,
+                        'sex' => strtolower($row[6] ?? ''),
+                        'vulnerable_groups' => isset($row[7]) ? array_map('trim', explode(',', $row[7])) : []
+                    ];
+                    
+                    // Validate required fields
+                    $validator = Validator::make($participantData, [
+                        'first_name' => 'required|string|max:255',
+                        'last_name' => 'required|string|max:255',
+                        'sex' => 'required|in:male,female'
+                    ]);
+                    
+                    if ($validator->fails()) {
+                        $errors[] = "Row {$rowNumber}: " . implode(', ', $validator->errors()->all());
+                        continue;
+                    }
+                    
+                    // Check if participant already exists (by name and organization)
+                    $existingParticipant = Participant::where('first_name', $participantData['first_name'])
+                        ->where('last_name', $participantData['last_name'])
+                        ->where('agency_organization', $participantData['agency_organization'])
+                        ->first();
+                    
+                    if ($existingParticipant) {
+                        // Check if already enrolled in this training
+                        if (!$existingParticipant->trainings()->where('training_id', $training->id)->exists()) {
+                            $existingParticipant->trainings()->attach($training->id);
+                            $added++;
+                        } else {
+                            $skipped++;
+                            // Add detailed information about skipped participant
+                            $skippedRows[] = [
+                                'row' => $rowNumber,
+                                'name' => trim(($participantData['first_name'] ?? '') . ' ' . ($participantData['middle_name'] ?? '') . ' ' . ($participantData['last_name'] ?? '')),
+                                'reason' => 'Already enrolled in this training'
+                            ];
+                        }
+                    } else {
+                        // Create new participant
+                        $participant = Participant::create($participantData);
+                        $participant->trainings()->attach($training->id);
+                        $added++;
+                    }
+                    
+                } catch (\Exception $e) {
+                    $errors[] = "Row {$rowNumber}: " . $e->getMessage();
+                }
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Excel file processed successfully',
+                'stats' => [
+                    'added' => $added,
+                    'skipped' => $skipped,
+                    'errors' => count($errors)
+                ],
+                'errors' => $errors,
+                'skippedRows' => $skippedRows // Include detailed skipped information
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error processing Excel file: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

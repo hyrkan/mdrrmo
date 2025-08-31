@@ -29,6 +29,7 @@ class Training extends Model
         'venue',
         'course_facilitator',
         'instructor',
+        'training_classification'
     ];
 
     protected $casts = [

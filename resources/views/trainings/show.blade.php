@@ -53,6 +53,26 @@
                             <dd class="mt-1 text-sm text-neutral-900 dark:text-neutral-100">{{ $training->name }}</dd>
                         </div>
                         <div>
+                            <dt class="text-sm font-medium text-neutral-500 dark:text-neutral-400">{{ __('Training Classification') }}</dt>
+                            <dd class="mt-1">
+                                @if($training->training_classification)
+                                    @php
+                                        $classificationColors = [
+                                            'external' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
+                                            'organized' => 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
+                                            'drills' => 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
+                                        ];
+                                        $colorClass = $classificationColors[$training->training_classification] ?? 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
+                                    @endphp
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $colorClass }}">
+                                        {{ ucfirst($training->training_classification) }}
+                                    </span>
+                                @else
+                                    <span class="text-sm text-neutral-500 dark:text-neutral-400">{{ __('Not specified') }}</span>
+                                @endif
+                            </dd>
+                        </div>
+                        <div>
                             <dt class="text-sm font-medium text-neutral-500 dark:text-neutral-400">{{ __('Organized By') }}</dt>
                             <dd class="mt-1 text-sm text-neutral-900 dark:text-neutral-100">{{ $training->organized_by }}</dd>
                         </div>

@@ -36,11 +36,35 @@
                     @enderror
                 </div>
 
+                <!-- Training Classification -->
+                <div>
+                    <label for="training_classification" class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">{{ __('Training Classification') }}</label>
+                    <select id="training_classification" 
+                            name="training_classification" 
+                            class="block w-full rounded-lg border-0 bg-neutral-50 px-4 py-3 text-neutral-900 ring-1 ring-inset ring-neutral-300 focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-600 dark:bg-neutral-800 dark:text-white dark:ring-neutral-600 dark:focus:bg-neutral-700 dark:focus:ring-blue-500 sm:text-sm sm:leading-6" 
+                            required>
+                        <option value="">{{ __('Select training classification') }}</option>
+                        <option value="external" {{ old('training_classification', $training->training_classification) === 'external' ? 'selected' : '' }}>
+                            {{ __('External') }}
+                        </option>
+                        <option value="organized" {{ old('training_classification', $training->training_classification) === 'organized' ? 'selected' : '' }}>
+                            {{ __('Organized') }}
+                        </option>
+                        <option value="drills" {{ old('training_classification', $training->training_classification) === 'drills' ? 'selected' : '' }}>
+                            {{ __('Drills') }}
+                        </option>
+                    </select>
+                    @error('training_classification')
+                        <div class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                    @enderror
+                </div>
+
                 <!-- Training Dates -->
                 <div>
                     <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">{{ __('Training Dates') }}</label>
-                    <div class="mb-2 text-sm text-neutral-600 dark:text-neutral-400">
-                        {{ __('Select future dates only. Additional dates should be equal to or after the first date.') }}
+                    <!-- Update the help text around line 43 -->
+                    <div class="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
+                        {{ __('Select training dates. Additional dates should be equal to or after the first date.') }}
                     </div>
                     <div id="dates-container" class="space-y-3">
                         @if (old('dates', $training->dates))
@@ -49,7 +73,6 @@
                                     <input type="date" 
                                            name="dates[]" 
                                            value="{{ $date }}"
-                                           min="{{ $index === 0 ? date('Y-m-d') : '' }}"
                                            {{ $index === 0 ? 'onchange="updateMinDatesForFollowing(this)"' : '' }}
                                            class="flex-1 rounded-lg border-0 bg-neutral-50 px-4 py-3 text-neutral-900 ring-1 ring-inset ring-neutral-300 focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-600 dark:bg-neutral-800 dark:text-white dark:ring-neutral-600 dark:focus:bg-neutral-700 dark:focus:ring-blue-500 sm:text-sm sm:leading-6" 
                                            required>
@@ -183,34 +206,34 @@
         </div>
     </div>
 
+    // Update the JavaScript around line 185
     <script>
         let dateIndex = {{ count(old('dates', $training->dates ?? [1])) }};
-        const today = new Date().toISOString().split('T')[0];
-
+    
         function updateMinDatesForFollowing(firstDateInput) {
             const firstDate = firstDateInput.value;
-            const dateInputs = document.querySelectorAll('input[name="dates[]"]:not(:first-of-type)');
+            const dateInputs = document.querySelectorAll('input[name="dates[]"](:not(:first-of-type)');
             
             dateInputs.forEach(input => {
                 if (firstDate) {
                     input.min = firstDate;
                 } else {
-                    input.min = today;
+                    input.removeAttribute('min');
                 }
             });
         }
-
+    
         function addDateField() {
             const container = document.getElementById('dates-container');
             const firstDateInput = document.querySelector('input[name="dates[]"]');
-            const minDate = firstDateInput && firstDateInput.value ? firstDateInput.value : today;
+            const minDate = firstDateInput && firstDateInput.value ? firstDateInput.value : '';
             
             const newField = document.createElement('div');
             newField.className = 'flex items-center gap-3 date-field';
             newField.innerHTML = `
                 <input type="date" 
                        name="dates[]" 
-                       min="${minDate}"
+                       ${minDate ? `min="${minDate}"` : ''}
                        class="flex-1 rounded-lg border-0 bg-neutral-50 px-4 py-3 text-neutral-900 ring-1 ring-inset ring-neutral-300 focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-600 dark:bg-neutral-800 dark:text-white dark:ring-neutral-600 dark:focus:bg-neutral-700 dark:focus:ring-blue-500 sm:text-sm sm:leading-6" 
                        required>
                 <button type="button" 
@@ -224,17 +247,11 @@
             container.appendChild(newField);
             dateIndex++;
         }
-
+    
         function removeDateField(button) {
             button.closest('.date-field').remove();
         }
-
-        // Initialize date validation on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            const firstDateInput = document.querySelector('input[name="dates[]"]');
-            if (firstDateInput) {
-                updateMinDatesForFollowing(firstDateInput);
-            }
-        });
+    
+        // Remove the DOMContentLoaded event listener that enforces date validation
     </script>
 </x-layouts.app>

@@ -23,6 +23,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('trainings.export-participants');
     Route::post('trainings/{training}/participants', [App\Http\Controllers\TrainingController::class, 'updateParticipants'])
         ->name('trainings.participants.update');
+    Route::post('trainings/{training}/participants/store', [App\Http\Controllers\TrainingController::class, 'storeParticipant'])
+        ->name('trainings.participants.store');
     Route::put('trainings/{training}/participants/{participant}/status', [App\Http\Controllers\TrainingController::class, 'updateParticipantStatus'])
         ->name('trainings.participants.update-status');
     Route::post('trainings/{training}/participants/bulk-status', [App\Http\Controllers\TrainingController::class, 'bulkUpdateParticipantStatus'])
@@ -37,6 +39,9 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('settings/profile', 'settings.profile')->name('settings.profile');
     Volt::route('settings/password', 'settings.password')->name('settings.password');
     Volt::route('settings/appearance', 'settings.appearance')->name('settings.appearance');
+    // Add this route with the other training participant routes
+    Route::post('/trainings/{training}/participants/upload-excel', [App\Http\Controllers\TrainingController::class, 'uploadExcelParticipants'])
+        ->name('trainings.participants.upload-excel');
 });
 
 require __DIR__.'/auth.php';

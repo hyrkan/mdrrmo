@@ -13,7 +13,7 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         // Get filter parameters
-        $dateRange = $request->get('date_range', '30'); // Default last 30 days
+        $dateRange = $request->get('date_range', 'all'); // Default to all time
         $trainingFilter = $request->get('training_filter');
         $organizationFilter = $request->get('organization_filter');
 
@@ -24,7 +24,7 @@ class DashboardController extends Controller
             '90' => Carbon::now()->subDays(90),
             '365' => Carbon::now()->subDays(365),
             'all' => null,
-            default => Carbon::now()->subDays(30)
+            default => null
         };
 
         // Base query for trainings

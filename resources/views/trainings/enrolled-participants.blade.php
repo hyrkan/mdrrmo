@@ -1,5 +1,5 @@
 <x-layouts.app :title="__('Training Participants')">
-    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.css" />
+
     <style>
         .dt-search { display: none; }
         .dt-length { margin-bottom: 1rem; }
@@ -437,11 +437,21 @@
         </div>
     </div>
 
-    <script src="https://cdn.datatables.net/2.1.8/js/dataTables.js"></script>
+
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        function initializePage() {
+            // Check if table exists
+            const tableId = '#participantsTable';
+            const participantsTable = document.querySelector(tableId);
+            if (!participantsTable) return;
+
+            // Destroy existing instance if it exists to prevent "Cannot reinitialise" warning
+            if ($.fn.DataTable.isDataTable(tableId)) {
+                $(tableId).DataTable().destroy();
+            }
+
             // Initialize DataTable
-            const table = $('#participantsTable').DataTable({
+            const table = $(tableId).DataTable({
                 pageLength: 25,
                 language: {
                     search: "",
@@ -459,11 +469,9 @@
             });
 
             const selectAllHeader = document.getElementById('selectAllHeader');
-
             const selectAllParticipants = document.getElementById('selectAllParticipants');
             const bulkActionSelect = document.getElementById('bulkActionSelect');
             const bulkActionBtn = document.getElementById('bulkActionBtn');
-
             const trainingId = {{ $training->id }};
             
             // Certificate modal elements
@@ -481,8 +489,6 @@
             const exportBtn = document.getElementById('exportBtn');
 
             // Search and filter functionality
-            let searchTimeout;
-            
             if (searchInput) {
                 searchInput.addEventListener('input', function() {
                     table.search(this.value).draw();
@@ -491,10 +497,9 @@
             
             if (statusFilter) {
                 statusFilter.addEventListener('change', function() {
-                    applyFilters(); // Keep PHP filter for status as it affects the query
+                    applyFilters();
                 });
             }
-
             
             if (clearFiltersBtn) {
                 clearFiltersBtn.addEventListener('click', function() {
@@ -507,438 +512,149 @@
             function applyFilters() {
                 const search = searchInput ? searchInput.value : '';
                 const status = statusFilter ? statusFilter.value : '';
-                
                 const url = new URL(window.location.href);
-                
-                if (search) {
-                    url.searchParams.set('search', search);
-                } else {
-                    url.searchParams.delete('search');
-                }
-                
-                if (status) {
-                    url.searchParams.set('status_filter', status);
-                } else {
-                    url.searchParams.delete('status_filter');
-                }
-                
+                if (search) url.searchParams.set('search', search); else url.searchParams.delete('search');
+                if (status) url.searchParams.set('status_filter', status); else url.searchParams.delete('status_filter');
                 window.location.href = url.toString();
             }
-            
-            // Make applyFilters available globally
-            window.applyFilters = applyFilters;
-            
-            // Export functionality
+
             if (exportBtn) {
                 exportBtn.addEventListener('click', function(e) {
                     e.preventDefault();
-                    
                     const search = searchInput ? searchInput.value : '';
                     const status = statusFilter ? statusFilter.value : '';
-                    
                     const url = new URL(`{{ route('trainings.export-participants', $training) }}`);
-                    
-                    if (search) {
-                        url.searchParams.set('search', search);
-                    }
-                    
-                    if (status) {
-                        url.searchParams.set('status_filter', status);
-                    }
-                    
-                    // Change button text to show loading state
+                    if (search) url.searchParams.set('search', search);
+                    if (status) url.searchParams.set('status_filter', status);
                     const originalText = exportBtn.innerHTML;
-                    exportBtn.innerHTML = `
-                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        {{ __('Exporting...') }}
-                    `;
+                    exportBtn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" ...>{{ __('Exporting...') }}</svg>`;
                     exportBtn.disabled = true;
-                    
-                    // Trigger download
                     window.location.href = url.toString();
-                    
-                    // Reset button after delay
-                    setTimeout(() => {
-                        exportBtn.innerHTML = originalText;
-                        exportBtn.disabled = false;
-                    }, 2000);
+                    setTimeout(() => { exportBtn.innerHTML = originalText; exportBtn.disabled = false; }, 2000);
                 });
             }
 
-            // Synchronize header checkboxes
             function syncHeaderCheckboxes() {
                 const checkboxes = document.querySelectorAll('.participant-checkbox');
                 const checkedBoxes = document.querySelectorAll('.participant-checkbox:checked');
                 const checkedCount = checkedBoxes.length;
                 const totalCheckboxes = checkboxes.length;
-                
-                const sAllHeader = document.getElementById('selectAllHeader');
-                const sAllParticipants = document.getElementById('selectAllParticipants');
-                const bActionBtn = document.getElementById('bulkActionBtn');
-                const bActionSelect = document.getElementById('bulkActionSelect');
-
-                if (sAllHeader) {
-                    sAllHeader.checked = totalCheckboxes > 0 && checkedCount === totalCheckboxes;
-                    sAllHeader.indeterminate = checkedCount > 0 && checkedCount < totalCheckboxes;
+                if (selectAllHeader) {
+                    selectAllHeader.checked = totalCheckboxes > 0 && checkedCount === totalCheckboxes;
+                    selectAllHeader.indeterminate = checkedCount > 0 && checkedCount < totalCheckboxes;
                 }
-                
-                if (sAllParticipants) {
-                    sAllParticipants.checked = totalCheckboxes > 0 && checkedCount === totalCheckboxes;
-                    sAllParticipants.indeterminate = checkedCount > 0 && checkedCount < totalCheckboxes;
+                if (selectAllParticipants) {
+                    selectAllParticipants.checked = totalCheckboxes > 0 && checkedCount === totalCheckboxes;
+                    selectAllParticipants.indeterminate = checkedCount > 0 && checkedCount < totalCheckboxes;
                 }
-
-                // Enable/disable bulk update button
-                if (bActionBtn) {
-                    bActionBtn.disabled = checkedCount === 0 || !bActionSelect || !bActionSelect.value;
-                }
+                if (bulkActionBtn) bulkActionBtn.disabled = checkedCount === 0 || !bulkActionSelect || !bulkActionSelect.value;
             }
 
-
-            // Select all functionality
             function toggleAllSelection(checked) {
-                const checkboxes = document.querySelectorAll('.participant-checkbox');
-                checkboxes.forEach(checkbox => {
-                    checkbox.checked = checked;
-                });
+                document.querySelectorAll('.participant-checkbox').forEach(cb => cb.checked = checked);
                 syncHeaderCheckboxes();
             }
 
-
-            // Event delegation for Select All and individual checkboxes
             document.addEventListener('change', function(e) {
-                // Select All Header or Participants
-                if (e.target.id === 'selectAllHeader' || e.target.id === 'selectAllParticipants') {
-                    toggleAllSelection(e.target.checked);
-                }
-                
-                // Individual participant checkbox
-                if (e.target.classList.contains('participant-checkbox')) {
-                    syncHeaderCheckboxes();
-                }
-                
-                // Individual status change
-                if (e.target.classList.contains('status-select')) {
-                    const select = e.target;
-                    const participantId = select.dataset.participantId;
-                    const originalValue = select.dataset.originalValue;
-                    const newValue = select.value;
-                    const saveBtn = document.querySelector(`[data-participant-id="${participantId}"].save-status-btn`);
-
-                    if (saveBtn) {
-                        if (newValue !== originalValue) {
-                            saveBtn.classList.remove('hidden');
-                        } else {
-                            saveBtn.classList.add('hidden');
-                        }
-                    }
-                }
-                
-                // Bulk action select change
-                if (e.target.id === 'bulkActionSelect') {
-                    syncHeaderCheckboxes();
-                }
+                if (e.target.id === 'selectAllHeader' || e.target.id === 'selectAllParticipants') toggleAllSelection(e.target.checked);
+                if (e.target.classList.contains('participant-checkbox')) syncHeaderCheckboxes();
+                if (e.target.id === 'bulkActionSelect') syncHeaderCheckboxes();
             });
 
-
-            // Save individual status
-            document.addEventListener('click', function(e) {
-                if (e.target.classList.contains('save-status-btn')) {
-                    const participantId = e.target.dataset.participantId;
-                    const statusSelect = document.querySelector(`[data-participant-id="${participantId}"].status-select`);
-                    const newStatus = statusSelect.value;
-
-                    updateParticipantStatus(participantId, newStatus, e.target);
-                }
-            });
-
-            // Bulk action handling
             if (bulkActionBtn) {
                 bulkActionBtn.addEventListener('click', function() {
-                    const selectedParticipants = Array.from(document.querySelectorAll('.participant-checkbox:checked'))
-                        .map(checkbox => checkbox.value);
-                    const bActionSelect = document.getElementById('bulkActionSelect');
-                    const selectedAction = bActionSelect ? bActionSelect.value : '';
-
-                    if (selectedParticipants.length === 0) {
-                        showNotification('Please select participants first', 'error');
-                        return;
-                    }
-
-                    if (!selectedAction) {
-                        showNotification('Please select an action', 'error');
-                        return;
-                    }
-
-
-                if (selectedAction === 'assign_certificates') {
-                    openCertificateModal();
-                } else {
-                        // Handle status updates
-                        bulkUpdateParticipantStatus(selectedParticipants, selectedAction);
-                    }
+                    const selectedParticipants = Array.from(document.querySelectorAll('.participant-checkbox:checked')).map(cb => cb.value);
+                    const selectedAction = bulkActionSelect ? bulkActionSelect.value : '';
+                    if (selectedAction === 'assign_certificates') openCertificateModal();
+                    else bulkUpdateParticipantStatus(selectedParticipants, selectedAction);
                 });
             }
 
-
-            // Update individual participant status
-            function updateParticipantStatus(participantId, status, saveBtn) {
-                saveBtn.disabled = true;
-                saveBtn.textContent = 'Saving...';
-
-                fetch(`/trainings/${trainingId}/participants/${participantId}/status`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({
-                        completion_status: status
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showNotification(data.message, 'success');
-                        // Refresh the page to update the UI
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1000);
-                    } else {
-                        throw new Error(data.message || 'Update failed');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showNotification('Error updating participant status: ' + error.message, 'error');
-                    saveBtn.disabled = false;
-                    saveBtn.textContent = 'Save';
-                });
-            }
-
-            // Bulk update participant status
             function bulkUpdateParticipantStatus(participantIds, status) {
                 bulkActionBtn.disabled = true;
                 bulkActionBtn.textContent = 'Updating...';
-
                 fetch(`/trainings/${trainingId}/participants/bulk-status`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({
-                        participant_ids: participantIds,
-                        completion_status: status
-                    })
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                    body: JSON.stringify({ participant_ids: participantIds, completion_status: status })
                 })
-                .then(response => response.json())
-                .then(data => {
+                .then(r => r.json()).then(data => {
                     if (data.success) {
                         showNotification(data.message, 'success');
-                        // Refresh the page to update the UI
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1000);
-                    } else {
-                        throw new Error(data.message || 'Bulk update failed');
-                    }
+                        setTimeout(() => window.location.reload(), 1000);
+                    } else throw new Error(data.message);
                 })
                 .catch(error => {
-                    console.error('Error:', error);
-                    showNotification('Error updating participants: ' + error.message, 'error');
+                    showNotification('Error updating: ' + error.message, 'error');
                     bulkActionBtn.disabled = false;
                     bulkActionBtn.textContent = 'Apply';
                 });
             }
 
-            // Show notification
-            function showNotification(message, type) {
-                const notification = document.createElement('div');
-                notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white z-50 ${
-                    type === 'success' ? 'bg-green-600' : 'bg-red-600'
-                }`;
-                notification.textContent = message;
-                document.body.appendChild(notification);
-
-                setTimeout(() => {
-                    notification.remove();
-                }, 3000);
-            }
-
-            // Certificate modal functionality
-            
-            // Function to open certificate modal
             function openCertificateModal() {
                 const selectedIds = Array.from(document.querySelectorAll('.participant-checkbox:checked')).map(cb => cb.value);
-                
-                if (selectedIds.length === 0) {
-                    showNotification('Please select participants first', 'error');
-                    return;
-                }
-
-                // Populate modal with participant inputs
                 const participantsContainer = certificateModal.querySelector('#certificateInputs');
                 participantsContainer.innerHTML = '';
-                
                 selectedIds.forEach(id => {
                     const participantRow = document.querySelector(`input[value="${id}"]`).closest('tr');
                     const nameCell = participantRow.querySelector('td:nth-child(2)');
-                    const statusSelect = participantRow.querySelector('td:nth-child(5) .status-select');
-                    
                     const participantName = nameCell.textContent.trim();
-                    const completionStatus = statusSelect ? statusSelect.value : 'enrolled';
-                    
-                    if (completionStatus === 'completed') {
-                        const inputGroup = document.createElement('div');
-                        inputGroup.className = 'mb-4';
-                        inputGroup.innerHTML = `
-                            <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">${participantName}</label>
-                            <input type="text" name="certificate_serials[${id}]" placeholder="Enter certificate serial" class="certificate-serial-input w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-neutral-700 dark:text-white" required>
-                            <div class="duplicate-warning hidden mt-1 text-xs text-red-600 dark:text-red-400">This serial number is already used above</div>
-                        `;
-                        participantsContainer.appendChild(inputGroup);
-                    }
+                    const inputGroup = document.createElement('div');
+                    inputGroup.className = 'mb-4';
+                    inputGroup.innerHTML = `
+                        <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">${participantName}</label>
+                        <input type="text" name="certificate_serials[${id}]" placeholder="Enter serial" class="certificate-serial-input w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md" required>
+                        <div class="duplicate-warning hidden mt-1 text-xs text-red-600">This serial number is already used above</div>
+                    `;
+                    participantsContainer.appendChild(inputGroup);
                 });
-                
-                if (participantsContainer.children.length === 0) {
-                    participantsContainer.innerHTML = '<p class="text-yellow-600 dark:text-yellow-400">No completed participants selected. Only participants with "Completed" status can receive certificates.</p>';
-                    assignCertificatesBtn.style.display = 'none';
-                } else {
-                    assignCertificatesBtn.style.display = 'block';
-                }
-                
                 certificateModal.classList.remove('hidden');
-                
-                // Add real-time duplicate checking
-                setTimeout(() => {
-                    const serialInputs = certificateModal.querySelectorAll('.certificate-serial-input');
-                    serialInputs.forEach(input => {
-                        input.addEventListener('input', function() {
-                            checkDuplicateSerials();
-                        });
-                    });
-                }, 100);
             }
-            
-            // Check for duplicate serials in real-time
-            function checkDuplicateSerials() {
-                const serialInputs = certificateModal.querySelectorAll('.certificate-serial-input');
-                const serialValues = Array.from(serialInputs).map(input => input.value.trim()).filter(val => val);
-                const warnings = certificateModal.querySelectorAll('.duplicate-warning');
-                
-                // Reset all warnings
-                warnings.forEach(warning => warning.classList.add('hidden'));
-                serialInputs.forEach(input => {
-                    input.classList.remove('border-red-500');
-                    input.classList.add('border-neutral-300');
-                });
-                
-                // Check for duplicates
-                serialInputs.forEach((input, index) => {
-                    const value = input.value.trim();
-                    if (value && serialValues.filter(v => v === value).length > 1) {
-                        input.classList.remove('border-neutral-300');
-                        input.classList.add('border-red-500');
-                        const warning = input.parentElement.querySelector('.duplicate-warning');
-                        if (warning) {
-                            warning.classList.remove('hidden');
+
+            if (cancelCertificateModal) {
+                cancelCertificateModal.addEventListener('click', () => certificateModal.classList.add('hidden'));
+            }
+
+            if (assignCertificatesBtn) {
+                assignCertificatesBtn.addEventListener('click', function() {
+                    const formData = new FormData(certificateForm);
+                    const issuedBy = formData.get('issued_by');
+                    const certificateSerials = {};
+                    for (let [key, value] of formData.entries()) {
+                        if (key.startsWith('certificate_serials[') && value.trim()) {
+                            certificateSerials[key.match(/\[(\d+)\]/)[1]] = value.trim();
                         }
                     }
-                });
-            }
-            
-            // Close certificate modal
-            cancelCertificateModal.addEventListener('click', function() {
-                certificateModal.classList.add('hidden');
-            });
-            
-            // Handle certificate form submission
-            assignCertificatesBtn.addEventListener('click', function() {
-                const formData = new FormData(certificateForm);
-                const issuedBy = formData.get('issued_by');
-                const certificateSerials = {};
-                
-                // Collect certificate serials
-                for (let [key, value] of formData.entries()) {
-                    if (key.startsWith('certificate_serials[') && value.trim()) {
-                        const participantId = key.match(/\[(\d+)\]/)[1];
-                        certificateSerials[participantId] = value.trim();
-                    }
-                }
-                
-                // Check for duplicate serials in the form
-                const serials = Object.values(certificateSerials);
-                const duplicates = serials.filter((serial, index) => serials.indexOf(serial) !== index);
-                
-                if (duplicates.length > 0) {
-                    showNotification('Duplicate certificate serials detected: ' + duplicates.join(', '), 'error');
-                    return;
-                }
-                
-                if (Object.keys(certificateSerials).length === 0) {
-                    showNotification('Please enter at least one certificate serial', 'error');
-                    return;
-                }
-                
-                if (!issuedBy.trim()) {
-                    showNotification('Please enter the issuing organization', 'error');
-                    return;
-                }
-                
-                // Submit form
-                assignCertificatesBtn.disabled = true;
-                assignCertificatesBtn.textContent = 'Assigning...';
-                
-                fetch(`/trainings/${trainingId}/participants/bulk-certificates`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({
-                        certificate_serials: certificateSerials,
-                        issued_by: issuedBy
+                    if (!issuedBy.trim()) { showNotification('Please enter the issuing organization', 'error'); return; }
+                    assignCertificatesBtn.disabled = true;
+                    fetch(`/trainings/${trainingId}/participants/bulk-certificates`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                        body: JSON.stringify({ certificate_serials: certificateSerials, issued_by: issuedBy })
                     })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showNotification(`Certificates assigned successfully! ${data.assigned} participants received certificates.`, 'success');
-                        certificateModal.classList.add('hidden');
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1000);
-                    } else {
-                        showNotification(data.message || 'Certificate assignment failed', 'error');
-                        if (data.errors && data.errors.length > 0) {
-                            data.errors.forEach(error => {
-                                showNotification(error, 'error');
-                            });
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showNotification('Error assigning certificates: ' + error.message, 'error');
-                })
-                .finally(() => {
-                    assignCertificatesBtn.disabled = false;
-                    assignCertificatesBtn.textContent = 'Assign Certificates';
+                    .then(r => r.json()).then(data => {
+                        if (data.success) {
+                            showNotification('Success!', 'success');
+                            setTimeout(() => window.location.reload(), 1000);
+                        } else showNotification(data.message, 'error');
+                    });
                 });
-            });
-
-            function initializeRowEvents() {
-                // Delegation handles the events, we just need to keep UI in sync
-                syncHeaderCheckboxes();
             }
 
+            function showNotification(message, type) {
+                const n = document.createElement('div');
+                n.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white z-50 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+                n.textContent = message;
+                document.body.appendChild(n);
+                setTimeout(() => n.remove(), 3000);
+            }
 
-            // Sync header checkboxes on initial load
+            function initializeRowEvents() { syncHeaderCheckboxes(); }
             syncHeaderCheckboxes();
-        });
+        }
+
+        document.addEventListener('DOMContentLoaded', initializePage);
+        document.addEventListener('livewire:navigated', initializePage);
     </script>
 </x-layouts.app>
 

@@ -368,32 +368,8 @@
         </div>
     </div>
 
-    <!-- Include Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // Simple refresh mechanism for dashboard chart reliability
-        (function() {
-            const dashboardKey = 'dashboard_last_visit';
-            const refreshInterval = 300000; // 5 minutes
-            const lastVisit = localStorage.getItem(dashboardKey);
-            const now = Date.now();
-            
-            // Auto-refresh if coming from another page and it's been a while
-            if (document.referrer && !document.referrer.includes('/dashboard')) {
-                // Coming from another page, refresh if last visit was more than 5 minutes ago
-                if (!lastVisit || (now - parseInt(lastVisit)) > refreshInterval) {
-                    localStorage.setItem(dashboardKey, now.toString());
-                    if (!window.location.search.includes('refreshed=1')) {
-                        const separator = window.location.search ? '&' : '?';
-                        window.location.href = window.location.href + separator + 'refreshed=1';
-                        return;
-                    }
-                }
-            }
-            
-            // Update last visit timestamp
-            localStorage.setItem(dashboardKey, now.toString());
-        })();        // Store chart instances globally
+        // Store chart instances globally
         let genderChart = null;
         let trainingCompletionChart = null;
         let monthlyTrendsChart = null;
@@ -551,19 +527,9 @@
             }
         }
 
-        // Initialize charts when DOM is ready
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeCharts();
-        });
-
-        // Force refresh when returning to dashboard to ensure charts load
-        window.addEventListener('pageshow', function(event) {
-            if (event.persisted) {
-                // Page was loaded from browser cache (back/forward navigation)
-                console.log('Refreshing dashboard for proper chart display');
-                window.location.reload();
-            }
-        });
+        // Initialize charts when DOM is ready or navigated via Livewire
+        document.addEventListener('DOMContentLoaded', initializeCharts);
+        document.addEventListener('livewire:navigated', initializeCharts);
         
     </script>
 </x-layouts.app>

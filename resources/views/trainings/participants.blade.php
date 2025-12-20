@@ -153,6 +153,26 @@
                                     </select>
                                 </div>
                                 
+                                <!-- Participant Type -->
+                                <div class="md:col-span-2">
+                                    <label for="participant_type" class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                                        {{ __('Participant Type') }}
+                                    </label>
+                                    <select name="participant_type" 
+                                            id="participant_type" 
+                                            class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-500 focus:bg-white dark:focus:bg-gray-700 focus:outline-none focus:ring-0 transition-all duration-200">
+                                        <option value="" class="text-gray-500">{{ __('Select Participant Type') }}</option>
+                                        <option value="DRRMO">DRRMO</option>
+                                        <option value="DRRMC">DRRMC</option>
+                                        <option value="CITY HALL OFFICE">CITY HALL OFFICE</option>
+                                        <option value="BRGY">BRGY</option>
+                                        <option value="NATL. AGENCY">NATL. AGENCY</option>
+                                        <option value="OTHER LGU">OTHER LGU</option>
+                                        <option value="PRIVATE SECTOR">PRIVATE SECTOR</option>
+                                        <option value="OTHER/S (school)">OTHER/S (school)</option>
+                                    </select>
+                                </div>
+                                
                                 <!-- Vulnerable Groups -->
                                 <div class="md:col-span-2">
                                     <label class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">
@@ -279,6 +299,8 @@
                                     <li>• {{ __('Column F: Position/Designation (optional)') }}</li>
                                     <li>• {{ __('Column G: Sex (male/female, required)') }}</li>
                                     <li>• {{ __('Column H: Vulnerable Groups (comma-separated, optional)') }}</li>
+                                    <li>• {{ __('Column I: Participant Type (DRRMO, DRRMC, CITY HALL OFFICE, BRGY, NATL. AGENCY, OTHER LGU, PRIVATE SECTOR, OTHER/S (school), optional)') }}</li>
+                                    <li>• {{ __('Column I: Vulnerable Groups (comma-separated, optional)') }}</li>
                                 </ul>
                                 <p class="text-xs text-blue-600 dark:text-blue-400 mt-2 font-medium">{{ __('First row should contain headers') }}</p>
                             </div>
@@ -389,7 +411,7 @@
                         }
 
                         participantsContainer.innerHTML = data.participants.map(participant => `
-                            <div class="flex items-start space-x-3 p-4 border border-neutral-200 dark:border-neutral-600 rounded-lg bg-neutral-50 dark:bg-neutral-700">
+                            <div class="flex items-start space-x-3 p-4 border border-neutral-200 dark:border-neutral-600 rounded-lg bg-neutral-50 dark:bg-gray-800">
                                 <input type="checkbox" 
                                        id="participant_${participant.id}" 
                                        name="participant_ids[]" 

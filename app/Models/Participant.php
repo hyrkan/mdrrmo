@@ -30,6 +30,7 @@ class Participant extends Model
         'agency_organization',
         'position_designation',
         'sex',
+        'participant_type', // Add this line
         'vulnerable_groups',
     ];
 
@@ -49,6 +50,21 @@ class Participant extends Model
         ]);
         
         return implode(' ', $parts);
+    }
+
+    /**
+     * Get the participant's formal name (Surname, Firstname M.)
+     */
+    public function getFormalNameAttribute()
+    {
+        $name = "{$this->last_name}, {$this->first_name}";
+        
+        if ($this->middle_name) {
+            $initial = strtoupper(substr($this->middle_name, 0, 1));
+            $name .= " {$initial}.";
+        }
+        
+        return $name;
     }
 
     /**

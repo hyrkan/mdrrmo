@@ -82,6 +82,19 @@
                         </div>
                         
                         <div>
+                            <dt class="text-sm font-medium text-neutral-500 dark:text-neutral-400">{{ __('Participant Type') }}</dt>
+                            <dd class="mt-1">
+                                @if($participant->participant_type)
+                                    <span class="inline-flex px-3 py-1 text-sm font-medium rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400">
+                                        {{ $participant->participant_type }}
+                                    </span>
+                                @else
+                                    <span class="text-sm text-neutral-500 dark:text-neutral-400 italic">{{ __('Not specified') }}</span>
+                                @endif
+                            </dd>
+                        </div>
+                        
+                        <div>
                             <dt class="text-sm font-medium text-neutral-500 dark:text-neutral-400">{{ __('Agency/Organization') }}</dt>
                             <dd class="mt-1 text-sm text-neutral-900 dark:text-neutral-100">
                                 {{ $participant->agency_organization ?: __('Not provided') }}

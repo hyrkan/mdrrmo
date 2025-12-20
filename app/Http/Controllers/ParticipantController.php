@@ -10,10 +10,46 @@ class ParticipantController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $participants = Participant::latest()->paginate(10);
-        return view('participants.index', compact('participants'));
+        $query = Participant::query();
+
+        // Apply search filter
+        if ($request->filled('search')) {
+            $search = $request->get('search');
+            $query->where(function($q) use ($search) {
+                $q->where('first_name', 'LIKE', "%{$search}%")
+                  ->orWhere('last_name', 'LIKE', "%{$search}%")
+                  ->orWhere('middle_name', 'LIKE', "%{$search}%")
+                  ->orWhere('id_no', 'LIKE', "%{$search}%")
+                  ->orWhere('agency_organization', 'LIKE', "%{$search}%")
+                  ->orWhere('position_designation', 'LIKE', "%{$search}%");
+            });
+        }
+
+        // Apply sorting
+        $sort = $request->get('sort', 'name');
+        $direction = $request->get('direction', 'asc');
+
+        // Toggle direction for the same column
+        $nextDirection = $direction === 'asc' ? 'desc' : 'asc';
+
+        if ($sort === 'name') {
+            $query->orderBy('last_name', $direction)
+                  ->orderBy('first_name', $direction);
+        } else {
+            $allowedSorts = ['id_no', 'agency_organization', 'position_designation', 'sex', 'created_at'];
+            if (in_array($sort, $allowedSorts)) {
+                $query->orderBy($sort, $direction);
+            } else {
+                $query->orderBy('last_name', 'asc')
+                      ->orderBy('first_name', 'asc');
+            }
+        }
+
+        $participants = $query->paginate(15)->withQueryString();
+
+        return view('participants.index', compact('participants', 'sort', 'direction', 'nextDirection'));
     }
 
     /**
@@ -37,6 +73,7 @@ class ParticipantController extends Controller
             'agency_organization' => 'nullable|string|max:255',
             'position_designation' => 'nullable|string|max:255',
             'sex' => 'required|in:male,female',
+            'participant_type' => 'nullable|string|in:DRRMO,DRRMC,CITY HALL OFFICE,BRGY,NATL. AGENCY,OTHER LGU,PRIVATE SECTOR,OTHER/S (school)',
             'vulnerable_groups' => 'nullable|array',
             'vulnerable_groups.*' => 'string|in:Persons with Disabilities (PWDs),Senior Citizens,Pregnant',
         ]);
@@ -95,6 +132,7 @@ class ParticipantController extends Controller
             'position_designation' => 'nullable|string|max:255',
             'sex' => 'required|in:male,female',
             'vulnerable_groups' => 'nullable|array',
+            'participant_type' => 'nullable|string|in:DRRMO,DRRMC,CITY HALL OFFICE,BRGY,NATL. AGENCY,OTHER LGU,PRIVATE SECTOR,OTHER/S (school)',
             'vulnerable_groups.*' => 'string|in:Persons with Disabilities (PWDs),Senior Citizens,Pregnant',
         ]);
 

@@ -1,4 +1,33 @@
 <x-layouts.app :title="__('Training Participants')">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.css" />
+    <style>
+        .dt-search { display: none; }
+        .dt-length { margin-bottom: 1rem; }
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            padding: 0.5rem 1rem;
+            margin-left: 0.5rem;
+            border-radius: 0.375rem;
+            border: 1px solid #e5e7eb;
+            background: white;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: #2563eb !important;
+            color: white !important;
+            border-color: #2563eb;
+        }
+        .dark .dataTables_wrapper .dataTables_paginate .paginate_button {
+            background: #1f2937;
+            border-color: #374151;
+            color: #d1d5db;
+        }
+        table.dataTable thead th {
+            border-bottom: 1px solid #e5e7eb !important;
+        }
+        .dark table.dataTable thead th {
+            border-bottom: 1px solid #374151 !important;
+        }
+    </style>
+
     <div class="flex h-full w-full flex-1 flex-col gap-6">
         <!-- Header -->
         <div class="flex items-center justify-between">
@@ -176,8 +205,9 @@
 
 
                 <!-- Participants Table -->
-                <div class="overflow-x-auto">
-                    <table class="w-full">
+                <div class="overflow-x-auto p-6">
+                    <table id="participantsTable" class="w-full">
+
                         <thead class="bg-neutral-50 dark:bg-neutral-700">
                             <tr>
                                 <th class="px-3 py-3 text-left">
@@ -192,15 +222,16 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-500 dark:text-neutral-300">
                                     {{ __('Position') }}
                                 </th>
-                                <th class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-neutral-500 dark:text-neutral-300">
+                                <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-500 dark:text-neutral-300">
                                     {{ __('Status') }}
                                 </th>
-                                <th class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-neutral-500 dark:text-neutral-300">
+                                <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-500 dark:text-neutral-300">
                                     {{ __('Certificate') }}
                                 </th>
-                                <th class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-neutral-500 dark:text-neutral-300">
+                                <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-500 dark:text-neutral-300">
                                     {{ __('Actions') }}
                                 </th>
+
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-neutral-200 bg-white dark:divide-neutral-600 dark:bg-neutral-800">
@@ -209,10 +240,13 @@
                                     <td class="px-3 py-4">
                                         <input type="checkbox" class="participant-checkbox rounded border-neutral-300 dark:border-neutral-600 text-blue-600 focus:ring-blue-500" value="{{ $participant->id }}">
                                     </td>
-                                <td class="px-6 py-4 break-words">
-                                    <div class="font-medium text-neutral-900 dark:text-neutral-100">
-                                        {{ $participant->full_name }}
+                                <td class="px-6 py-4 break-words" data-order="{{ $participant->last_name }}, {{ $participant->first_name }}">
+                                    <div class="font-medium text-neutral-900 dark:text-neutral-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                        <a href="{{ route('participants.show', $participant) }}">
+                                            {{ $participant->formal_name }}
+                                        </a>
                                     </div>
+
                                     @if($participant->vulnerable_groups)
                                         <div class="mt-1">
                                             @foreach($participant->vulnerable_groups as $group)
@@ -229,16 +263,24 @@
                                 <td class="px-6 py-4 text-sm text-neutral-600 dark:text-neutral-300 break-words">
                                     {{ $participant->position_designation ?: __('Not specified') }}
                                 </td>
-                                    <td class="px-6 py-4 text-center">
-                                        <select class="status-select rounded border-0 bg-neutral-50 px-3 py-1 text-sm ring-1 ring-inset ring-neutral-300 dark:bg-neutral-800 dark:ring-neutral-600" 
-                                                data-participant-id="{{ $participant->id }}" 
-                                                data-original-value="{{ $participant->pivot->completion_status }}">
-                                            <option value="enrolled" {{ $participant->pivot->completion_status === 'enrolled' ? 'selected' : '' }}>{{ __('Enrolled') }}</option>
-                                            <option value="completed" {{ $participant->pivot->completion_status === 'completed' ? 'selected' : '' }}>{{ __('Completed') }}</option>
-                                            <option value="did_not_complete" {{ $participant->pivot->completion_status === 'did_not_complete' ? 'selected' : '' }}>{{ __('Did Not Complete') }}</option>
-                                        </select>
+                                    <td class="px-6 py-4 text-left">
+                                        @if($participant->pivot->completion_status === 'enrolled')
+                                            <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                                {{ __('Enrolled') }}
+                                            </span>
+                                        @elseif($participant->pivot->completion_status === 'completed')
+                                            <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
+                                                {{ __('Completed') }}
+                                            </span>
+                                        @elseif($participant->pivot->completion_status === 'did_not_complete')
+                                            <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">
+                                                {{ __('Did Not Complete') }}
+                                            </span>
+                                        @endif
                                     </td>
-                                    <td class="px-6 py-4 text-center">
+
+                                    <td class="px-6 py-4 text-left">
+
                                         @if($participant->pivot->certificate)
                                             <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
                                                 <svg class="mr-1 size-3" fill="currentColor" viewBox="0 0 20 20">
@@ -275,31 +317,21 @@
                                             @endif
                                         @endif
                                     </td>
-                                    <td class="px-6 py-4 text-center">
-                                        <div class="flex items-center justify-center gap-2">
+                                    <td class="px-6 py-4 text-left">
+                                        <div class="flex items-center justify-start gap-2">
                                             <a href="{{ route('participants.show', $participant) }}" 
-                                               class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm">
-                                                {{ __('View') }}
+                                               class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium">
+                                                {{ __('View Profile') }}
                                             </a>
-                                            <button type="button" 
-                                                    class="save-status-btn text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 text-sm hidden"
-                                                    data-participant-id="{{ $participant->id }}">
-                                                {{ __('Save') }}
-                                            </button>
                                         </div>
                                     </td>
+
+
                                 </tr>
                             @endforeach
                         </tbody>
                     </table>
                 </div>
-                
-                <!-- Pagination -->
-                @if(method_exists($enrolledParticipants, 'hasPages') && $enrolledParticipants->hasPages())
-                    <div class="border-t border-neutral-200 bg-white px-6 py-3 dark:border-neutral-700 dark:bg-neutral-800">
-                        {{ $enrolledParticipants->links() }}
-                    </div>
-                @endif
                 
                 @if($enrolledParticipants->count() === 0 && (request('search') || request('status_filter')))
                     <!-- No Results Message -->
@@ -319,6 +351,7 @@
                         </div>
                     </div>
                 @endif
+
             @else
                 <!-- Empty State -->
                 <div class="px-6 py-12 text-center">
@@ -404,14 +437,33 @@
         </div>
     </div>
 
+    <script src="https://cdn.datatables.net/2.1.8/js/dataTables.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize DataTable
+            const table = $('#participantsTable').DataTable({
+                pageLength: 25,
+                language: {
+                    search: "",
+                    searchPlaceholder: "Search..."
+                },
+                columnDefs: [
+                    { orderable: false, targets: [0, 6] } // Disable sorting on checkbox and actions columns
+                ],
+                order: [[1, 'asc']], // Default sort by name column
+                dom: '<"flex flex-col sm:flex-row justify-between items-center mb-4"l>rtip',
+                drawCallback: function() {
+                    // Re-initialize event listeners after table redraw
+                    initializeRowEvents();
+                }
+            });
+
             const selectAllHeader = document.getElementById('selectAllHeader');
+
             const selectAllParticipants = document.getElementById('selectAllParticipants');
-            const participantCheckboxes = document.querySelectorAll('.participant-checkbox');
             const bulkActionSelect = document.getElementById('bulkActionSelect');
             const bulkActionBtn = document.getElementById('bulkActionBtn');
-            const statusSelects = document.querySelectorAll('.status-select');
+
             const trainingId = {{ $training->id }};
             
             // Certificate modal elements
@@ -433,18 +485,16 @@
             
             if (searchInput) {
                 searchInput.addEventListener('input', function() {
-                    clearTimeout(searchTimeout);
-                    searchTimeout = setTimeout(() => {
-                        applyFilters();
-                    }, 500);
+                    table.search(this.value).draw();
                 });
             }
             
             if (statusFilter) {
                 statusFilter.addEventListener('change', function() {
-                    applyFilters();
+                    applyFilters(); // Keep PHP filter for status as it affects the query
                 });
             }
+
             
             if (clearFiltersBtn) {
                 clearFiltersBtn.addEventListener('click', function() {
@@ -520,55 +570,78 @@
 
             // Synchronize header checkboxes
             function syncHeaderCheckboxes() {
-                const checkedCount = document.querySelectorAll('.participant-checkbox:checked').length;
-                const totalCount = participantCheckboxes.length;
+                const checkboxes = document.querySelectorAll('.participant-checkbox');
+                const checkedBoxes = document.querySelectorAll('.participant-checkbox:checked');
+                const checkedCount = checkedBoxes.length;
+                const totalCheckboxes = checkboxes.length;
                 
-                selectAllHeader.checked = checkedCount === totalCount;
-                selectAllParticipants.checked = checkedCount === totalCount;
-                selectAllHeader.indeterminate = checkedCount > 0 && checkedCount < totalCount;
-                selectAllParticipants.indeterminate = checkedCount > 0 && checkedCount < totalCount;
+                const sAllHeader = document.getElementById('selectAllHeader');
+                const sAllParticipants = document.getElementById('selectAllParticipants');
+                const bActionBtn = document.getElementById('bulkActionBtn');
+                const bActionSelect = document.getElementById('bulkActionSelect');
+
+                if (sAllHeader) {
+                    sAllHeader.checked = totalCheckboxes > 0 && checkedCount === totalCheckboxes;
+                    sAllHeader.indeterminate = checkedCount > 0 && checkedCount < totalCheckboxes;
+                }
+                
+                if (sAllParticipants) {
+                    sAllParticipants.checked = totalCheckboxes > 0 && checkedCount === totalCheckboxes;
+                    sAllParticipants.indeterminate = checkedCount > 0 && checkedCount < totalCheckboxes;
+                }
 
                 // Enable/disable bulk update button
-                bulkActionBtn.disabled = checkedCount === 0 || !bulkActionSelect.value;
+                if (bActionBtn) {
+                    bActionBtn.disabled = checkedCount === 0 || !bActionSelect || !bActionSelect.value;
+                }
             }
+
 
             // Select all functionality
             function toggleAllSelection(checked) {
-                participantCheckboxes.forEach(checkbox => {
+                const checkboxes = document.querySelectorAll('.participant-checkbox');
+                checkboxes.forEach(checkbox => {
                     checkbox.checked = checked;
                 });
                 syncHeaderCheckboxes();
             }
 
-            selectAllHeader.addEventListener('change', function() {
-                toggleAllSelection(this.checked);
-            });
 
-            selectAllParticipants.addEventListener('change', function() {
-                toggleAllSelection(this.checked);
-            });
-
-            participantCheckboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', syncHeaderCheckboxes);
-            });
-
-            bulkActionSelect.addEventListener('change', syncHeaderCheckboxes);
-
-            // Individual status change
-            statusSelects.forEach(select => {
-                select.addEventListener('change', function() {
-                    const participantId = this.dataset.participantId;
-                    const originalValue = this.dataset.originalValue;
-                    const newValue = this.value;
+            // Event delegation for Select All and individual checkboxes
+            document.addEventListener('change', function(e) {
+                // Select All Header or Participants
+                if (e.target.id === 'selectAllHeader' || e.target.id === 'selectAllParticipants') {
+                    toggleAllSelection(e.target.checked);
+                }
+                
+                // Individual participant checkbox
+                if (e.target.classList.contains('participant-checkbox')) {
+                    syncHeaderCheckboxes();
+                }
+                
+                // Individual status change
+                if (e.target.classList.contains('status-select')) {
+                    const select = e.target;
+                    const participantId = select.dataset.participantId;
+                    const originalValue = select.dataset.originalValue;
+                    const newValue = select.value;
                     const saveBtn = document.querySelector(`[data-participant-id="${participantId}"].save-status-btn`);
 
-                    if (newValue !== originalValue) {
-                        saveBtn.classList.remove('hidden');
-                    } else {
-                        saveBtn.classList.add('hidden');
+                    if (saveBtn) {
+                        if (newValue !== originalValue) {
+                            saveBtn.classList.remove('hidden');
+                        } else {
+                            saveBtn.classList.add('hidden');
+                        }
                     }
-                });
+                }
+                
+                // Bulk action select change
+                if (e.target.id === 'bulkActionSelect') {
+                    syncHeaderCheckboxes();
+                }
             });
+
 
             // Save individual status
             document.addEventListener('click', function(e) {
@@ -582,28 +655,33 @@
             });
 
             // Bulk action handling
-            bulkActionBtn.addEventListener('click', function() {
-                const selectedParticipants = Array.from(document.querySelectorAll('.participant-checkbox:checked'))
-                    .map(checkbox => checkbox.value);
-                const selectedAction = bulkActionSelect.value;
+            if (bulkActionBtn) {
+                bulkActionBtn.addEventListener('click', function() {
+                    const selectedParticipants = Array.from(document.querySelectorAll('.participant-checkbox:checked'))
+                        .map(checkbox => checkbox.value);
+                    const bActionSelect = document.getElementById('bulkActionSelect');
+                    const selectedAction = bActionSelect ? bActionSelect.value : '';
 
-                if (selectedParticipants.length === 0) {
-                    showNotification('Please select participants first', 'error');
-                    return;
-                }
+                    if (selectedParticipants.length === 0) {
+                        showNotification('Please select participants first', 'error');
+                        return;
+                    }
 
-                if (!selectedAction) {
-                    showNotification('Please select an action', 'error');
-                    return;
-                }
+                    if (!selectedAction) {
+                        showNotification('Please select an action', 'error');
+                        return;
+                    }
+
 
                 if (selectedAction === 'assign_certificates') {
                     openCertificateModal();
                 } else {
-                    // Handle status updates
-                    bulkUpdateParticipantStatus(selectedParticipants, selectedAction);
-                }
-            });
+                        // Handle status updates
+                        bulkUpdateParticipantStatus(selectedParticipants, selectedAction);
+                    }
+                });
+            }
+
 
             // Update individual participant status
             function updateParticipantStatus(participantId, status, saveBtn) {
@@ -852,8 +930,15 @@
                 });
             });
 
-            // Initial sync
+            function initializeRowEvents() {
+                // Delegation handles the events, we just need to keep UI in sync
+                syncHeaderCheckboxes();
+            }
+
+
+            // Sync header checkboxes on initial load
             syncHeaderCheckboxes();
         });
     </script>
 </x-layouts.app>
+

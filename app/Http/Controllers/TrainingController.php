@@ -249,25 +249,12 @@ class TrainingController extends Controller
             }
         }
 
-        // Determine if any filters are applied
-        $hasFilters = $request->filled('search') || $request->filled('status_filter');
-        
-        if ($hasFilters) {
-            // If filters are applied, use pagination to handle potentially large result sets
-            $enrolledParticipants = $query
-                ->orderBy('last_name')
-                ->orderBy('first_name')
-                ->paginate(10);
-                
-            // Preserve query parameters in pagination links
-            $enrolledParticipants->appends(request()->query());
-        } else {
-            // If no filters, show all enrolled participants without pagination
-            $enrolledParticipants = $query
-                ->orderBy('last_name')
-                ->orderBy('first_name')
-                ->get();
-        }
+        // For DataTables, we want all participants to be available for client-side sorting and filtering
+        $enrolledParticipants = $query
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
+
 
         return view('trainings.enrolled-participants', compact('training', 'enrolledParticipants'));
     }
@@ -562,6 +549,7 @@ class TrainingController extends Controller
             'agency_organization' => 'nullable|string|max:255',
             'position_designation' => 'nullable|string|max:255',
             'sex' => 'required|in:male,female',
+            'participant_type' => 'nullable|string|in:DRRMO,DRRMC,CITY HALL OFFICE,BRGY,NATL. AGENCY,OTHER LGU,PRIVATE SECTOR,OTHER/S (school)',
             'vulnerable_groups' => 'nullable|array',
             'vulnerable_groups.*' => 'string|in:Persons with Disabilities (PWDs),Senior Citizens,Pregnant',
         ]);
@@ -625,14 +613,16 @@ class TrainingController extends Controller
                         'agency_organization' => $row[4] ?? null,
                         'position_designation' => $row[5] ?? null,
                         'sex' => strtolower($row[6] ?? ''),
-                        'vulnerable_groups' => isset($row[7]) ? array_map('trim', explode(',', $row[7])) : []
+                        'vulnerable_groups' => isset($row[7]) && !empty(trim($row[7])) ? array_map('trim', explode(',', $row[7])) : [],
+                        'participant_type' => $row[8] ?? null
                     ];
                     
                     // Validate required fields
                     $validator = Validator::make($participantData, [
                         'first_name' => 'required|string|max:255',
                         'last_name' => 'required|string|max:255',
-                        'sex' => 'required|in:male,female'
+                        'sex' => 'required|in:male,female',
+                        'participant_type' => 'nullable|string|in:DRRMO,DRRMC,CITY HALL OFFICE,BRGY,NATL. AGENCY,OTHER LGU,PRIVATE SECTOR,OTHER/S (school)'
                     ]);
                     
                     if ($validator->fails()) {

@@ -445,29 +445,7 @@
             const participantsTable = document.querySelector(tableId);
             if (!participantsTable) return;
 
-            // Destroy existing instance if it exists to prevent "Cannot reinitialise" warning
-            if ($.fn.DataTable.isDataTable(tableId)) {
-                $(tableId).DataTable().destroy();
-            }
-
-            // Initialize DataTable
-            const table = $(tableId).DataTable({
-                pageLength: 25,
-                language: {
-                    search: "",
-                    searchPlaceholder: "Search..."
-                },
-                columnDefs: [
-                    { orderable: false, targets: [0, 6] } // Disable sorting on checkbox and actions columns
-                ],
-                order: [[1, 'asc']], // Default sort by name column
-                dom: '<"flex flex-col sm:flex-row justify-between items-center mb-4"l>rtip',
-                drawCallback: function() {
-                    // Re-initialize event listeners after table redraw
-                    initializeRowEvents();
-                }
-            });
-
+            // Get all needed elements at the start to avoid "before initialization" errors
             const selectAllHeader = document.getElementById('selectAllHeader');
             const selectAllParticipants = document.getElementById('selectAllParticipants');
             const bulkActionSelect = document.getElementById('bulkActionSelect');
@@ -487,6 +465,50 @@
             
             // Export button
             const exportBtn = document.getElementById('exportBtn');
+
+            // Destroy existing instance if it exists to prevent "Cannot reinitialise" warning
+            if ($.fn.DataTable.isDataTable(tableId)) {
+                $(tableId).DataTable().destroy();
+            }
+
+            // Define syncHeaderCheckboxes before it's used in drawCallback
+            function syncHeaderCheckboxes() {
+                const checkboxes = document.querySelectorAll('.participant-checkbox');
+                const checkedBoxes = document.querySelectorAll('.participant-checkbox:checked');
+                const checkedCount = checkedBoxes.length;
+                const totalCheckboxes = checkboxes.length;
+                if (selectAllHeader) {
+                    selectAllHeader.checked = totalCheckboxes > 0 && checkedCount === totalCheckboxes;
+                    selectAllHeader.indeterminate = checkedCount > 0 && checkedCount < totalCheckboxes;
+                }
+                if (selectAllParticipants) {
+                    selectAllParticipants.checked = totalCheckboxes > 0 && checkedCount === totalCheckboxes;
+                    selectAllParticipants.indeterminate = checkedCount > 0 && checkedCount < totalCheckboxes;
+                }
+                if (bulkActionBtn) bulkActionBtn.disabled = checkedCount === 0 || !bulkActionSelect || !bulkActionSelect.value;
+            }
+
+            function initializeRowEvents() {
+                syncHeaderCheckboxes();
+            }
+
+            // Initialize DataTable
+            const table = $(tableId).DataTable({
+                pageLength: 25,
+                language: {
+                    search: "",
+                    searchPlaceholder: "Search..."
+                },
+                columnDefs: [
+                    { orderable: false, targets: [0, 6] } // Disable sorting on checkbox and actions columns
+                ],
+                order: [[1, 'asc']], // Default sort by name column
+                dom: '<"flex flex-col sm:flex-row justify-between items-center mb-4"l>rtip',
+                drawCallback: function() {
+                    // Re-initialize event listeners after table redraw
+                    initializeRowEvents();
+                }
+            });
 
             // Search and filter functionality
             if (searchInput) {
@@ -534,21 +556,6 @@
                 });
             }
 
-            function syncHeaderCheckboxes() {
-                const checkboxes = document.querySelectorAll('.participant-checkbox');
-                const checkedBoxes = document.querySelectorAll('.participant-checkbox:checked');
-                const checkedCount = checkedBoxes.length;
-                const totalCheckboxes = checkboxes.length;
-                if (selectAllHeader) {
-                    selectAllHeader.checked = totalCheckboxes > 0 && checkedCount === totalCheckboxes;
-                    selectAllHeader.indeterminate = checkedCount > 0 && checkedCount < totalCheckboxes;
-                }
-                if (selectAllParticipants) {
-                    selectAllParticipants.checked = totalCheckboxes > 0 && checkedCount === totalCheckboxes;
-                    selectAllParticipants.indeterminate = checkedCount > 0 && checkedCount < totalCheckboxes;
-                }
-                if (bulkActionBtn) bulkActionBtn.disabled = checkedCount === 0 || !bulkActionSelect || !bulkActionSelect.value;
-            }
 
             function toggleAllSelection(checked) {
                 document.querySelectorAll('.participant-checkbox').forEach(cb => cb.checked = checked);
@@ -649,7 +656,6 @@
                 setTimeout(() => n.remove(), 3000);
             }
 
-            function initializeRowEvents() { syncHeaderCheckboxes(); }
             syncHeaderCheckboxes();
         }
 

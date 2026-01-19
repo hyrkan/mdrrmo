@@ -13,7 +13,7 @@ import toastr from 'toastr';
 window.toastr = toastr;
 
 import DataTable from 'datatables.net-dt';
-DataTable(window, jQuery);
+DataTable.use(jQuery);
 window.DataTable = DataTable;
 
 import '@fontsource/instrument-sans/400.css';

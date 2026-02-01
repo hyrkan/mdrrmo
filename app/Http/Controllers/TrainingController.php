@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Training;
 use App\Exports\EnrolledParticipantsExport;
+use App\Models\Participant;
+use App\Models\Training;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Models\Participant;
 
 class TrainingController extends Controller
 {
@@ -19,50 +18,50 @@ class TrainingController extends Controller
     public function index(Request $request)
     {
         $query = Training::query();
-        
+
         // Apply search filter
         if ($request->filled('search')) {
             $search = $request->get('search');
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('organized_by', 'LIKE', "%{$search}%")
-                  ->orWhere('requesting_party', 'LIKE', "%{$search}%")
-                  ->orWhere('venue', 'LIKE', "%{$search}%")
-                  ->orWhere('course_facilitator', 'LIKE', "%{$search}%")
-                  ->orWhere('instructor', 'LIKE', "%{$search}%");
+                    ->orWhere('organized_by', 'LIKE', "%{$search}%")
+                    ->orWhere('requesting_party', 'LIKE', "%{$search}%")
+                    ->orWhere('venue', 'LIKE', "%{$search}%")
+                    ->orWhere('course_facilitator', 'LIKE', "%{$search}%")
+                    ->orWhere('instructor', 'LIKE', "%{$search}%");
             });
         }
-        
+
         // Apply classification filter - ADD THIS SECTION
         if ($request->filled('classification_filter')) {
             $query->where('training_classification', $request->get('classification_filter'));
         }
-        
+
         // Apply date filter
         if ($request->filled('date_filter')) {
             $dateFilter = $request->get('date_filter');
             $dateFilterType = $request->get('date_filter_type', 'exact');
-            
-            $query->where(function($q) use ($dateFilter, $dateFilterType) {
+
+            $query->where(function ($q) {
                 // Get all trainings and filter by dates in PHP since JSON queries can be tricky
                 $q->whereRaw('1=1'); // This will be filtered in the collection later
             });
         }
-        
+
         // Get initial results
         $trainingsQuery = $query->latest();
-        
+
         // Apply date filtering after getting results (for more reliable JSON array filtering)
         if ($request->filled('date_filter')) {
             $dateFilter = $request->get('date_filter');
             $dateFilterType = $request->get('date_filter_type', 'exact');
-            
+
             $allTrainings = $trainingsQuery->get();
-            $filteredTrainings = $allTrainings->filter(function($training) use ($dateFilter, $dateFilterType) {
-                if (!$training->dates || !is_array($training->dates)) {
+            $filteredTrainings = $allTrainings->filter(function ($training) use ($dateFilter, $dateFilterType) {
+                if (! $training->dates || ! is_array($training->dates)) {
                     return false;
                 }
-                
+
                 foreach ($training->dates as $trainingDate) {
                     switch ($dateFilterType) {
                         case 'exact':
@@ -82,9 +81,10 @@ class TrainingController extends Controller
                             break;
                     }
                 }
+
                 return false;
             });
-            
+
             // Convert back to paginated result
             $currentPage = request()->get('page', 1);
             $perPage = 10;
@@ -101,10 +101,10 @@ class TrainingController extends Controller
         } else {
             $trainings = $trainingsQuery->paginate(10);
         }
-        
+
         // Preserve query parameters in pagination links
         $trainings->appends($request->query());
-        
+
         return view('trainings.index', compact('trainings'));
     }
 
@@ -132,12 +132,12 @@ class TrainingController extends Controller
             'course_facilitator' => 'nullable|string|max:255',
             'instructor' => 'nullable|string|max:255',
         ]);
-    
+
         // Sort dates to ensure chronological order
         $validated['dates'] = collect($validated['dates'])->sort()->values()->toArray();
-    
+
         Training::create($validated);
-    
+
         return redirect()->route('trainings.index')
             ->with('success', 'Training created successfully.');
     }
@@ -174,12 +174,12 @@ class TrainingController extends Controller
             'course_facilitator' => 'nullable|string|max:255',
             'instructor' => 'nullable|string|max:255',
         ]);
-    
+
         // Sort dates to ensure chronological order
         $validated['dates'] = collect($validated['dates'])->sort()->values()->toArray();
-    
+
         $training->update($validated);
-    
+
         return redirect()->route('trainings.index')
             ->with('success', 'Training updated successfully.');
     }
@@ -219,19 +219,19 @@ class TrainingController extends Controller
     public function enrolledParticipants(Request $request, Training $training)
     {
         $query = $training->participants();
-        
+
         // Apply search filter
         if ($request->filled('search')) {
             $search = $request->get('search');
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'LIKE', "%{$search}%")
-                  ->orWhere('last_name', 'LIKE', "%{$search}%")
-                  ->orWhere('middle_name', 'LIKE', "%{$search}%")
-                  ->orWhere('agency_organization', 'LIKE', "%{$search}%")
-                  ->orWhere('position_designation', 'LIKE', "%{$search}%");
+                    ->orWhere('last_name', 'LIKE', "%{$search}%")
+                    ->orWhere('middle_name', 'LIKE', "%{$search}%")
+                    ->orWhere('agency_organization', 'LIKE', "%{$search}%")
+                    ->orWhere('position_designation', 'LIKE', "%{$search}%");
             });
         }
-        
+
         // Apply status filter
         if ($request->filled('status_filter')) {
             $statusFilter = $request->get('status_filter');
@@ -241,7 +241,7 @@ class TrainingController extends Controller
                 $query->wherePivot('completion_status', 'completed');
             } elseif ($statusFilter === 'ready_for_certificate') {
                 $query->wherePivot('completion_status', 'completed')
-                     ->wherePivot('certificate', false);
+                    ->wherePivot('certificate', false);
             } elseif ($statusFilter === 'certificate_issued') {
                 $query->wherePivot('certificate', true);
             } elseif ($statusFilter === 'did_not_complete') {
@@ -255,7 +255,6 @@ class TrainingController extends Controller
             ->orderBy('first_name')
             ->get();
 
-
         return view('trainings.enrolled-participants', compact('training', 'enrolledParticipants'));
     }
 
@@ -267,7 +266,7 @@ class TrainingController extends Controller
         $search = $request->get('search');
         $statusFilter = $request->get('status_filter');
 
-        $filename = 'enrolled-participants-' . $training->slug . '-' . now()->format('Y-m-d') . '.xlsx';
+        $filename = 'enrolled-participants-'.$training->slug.'-'.now()->format('Y-m-d').'.xlsx';
 
         return Excel::download(
             new EnrolledParticipantsExport($training, $search, $statusFilter),
@@ -293,25 +292,32 @@ class TrainingController extends Controller
             ->orderBy('first_name')
             ->get();
 
-        // Get currently enrolled participants for this training
-        $enrolledIds = [];
+        // Get currently enrolled participants with their pivot data
+        $enrolledData = [];
         if ($trainingId) {
             $training = Training::find($trainingId);
             if ($training) {
-                $enrolledIds = $training->participants()->pluck('participant_id')->toArray();
+                $enrolledData = $training->participants()
+                    ->withPivot('completion_status', 'certificate')
+                    ->get()
+                    ->keyBy('id');
             }
         }
 
         return response()->json([
-            'participants' => $participants->map(function ($participant) use ($enrolledIds) {
+            'participants' => $participants->map(function ($participant) use ($enrolledData) {
+                $enrolledInfo = $enrolledData[$participant->id] ?? null;
+
                 return [
                     'id' => $participant->id,
                     'full_name' => $participant->full_name,
                     'agency_organization' => $participant->agency_organization,
                     'position_designation' => $participant->position_designation,
-                    'is_enrolled' => in_array($participant->id, $enrolledIds),
+                    'is_enrolled' => $enrolledInfo !== null,
+                    'completion_status' => $enrolledInfo ? $enrolledInfo->pivot->completion_status : 'enrolled',
+                    'has_certificate' => $enrolledInfo ? (bool) $enrolledInfo->pivot->certificate : false,
                 ];
-            })
+            }),
         ]);
     }
 
@@ -327,11 +333,33 @@ class TrainingController extends Controller
 
         $participantIds = $request->input('participant_ids', []);
 
-        // Sync participants (this will add new ones and remove unchecked ones)
-        $training->participants()->sync($participantIds);
+        // SAFETY CHECK: Get participants who have already completed or have certificates
+        // These should NOT be removed even if they are missing from $participantIds
+        $protectedParticipantIds = $training->participants()
+            ->where(function ($q) {
+                $q->wherePivot('completion_status', 'completed')
+                    ->orWherePivot('certificate', true);
+            })
+            ->pluck('participants.id')
+            ->toArray();
 
-        return redirect()->route('trainings.participants', $training)
+        // Check if user TRIED to remove protected participants
+        $triedToRemoveCount = count(array_diff($protectedParticipantIds, $participantIds));
+
+        // Merge protected IDs into the list to ensure they are kept
+        $finalParticipantIds = array_unique(array_merge($participantIds, $protectedParticipantIds));
+
+        // Sync participants
+        $training->participants()->sync($finalParticipantIds);
+
+        $response = redirect()->route('trainings.participants', $training)
             ->with('success', 'Training participants updated successfully.');
+
+        if ($triedToRemoveCount > 0) {
+            $response->with('warning', "{$triedToRemoveCount} participant(s) were NOT removed because they have already completed the training or have a certificate.");
+        }
+
+        return $response;
     }
 
     /**
@@ -353,6 +381,17 @@ class TrainingController extends Controller
 
         // Get current participant data to preserve existing certificate info
         $currentParticipant = $training->participants()->wherePivot('participant_id', $participantId)->first();
+
+        // PROTECTION: Prevent changing status if already completed/awarded
+        if ($currentParticipant && ($currentParticipant->pivot->completion_status === 'completed' || $currentParticipant->pivot->certificate)) {
+            if ($completionStatus !== 'completed') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot change status - participant has already completed the training or was awarded a certificate.',
+                ], 422);
+            }
+        }
+
         $currentCertificate = $currentParticipant ? $currentParticipant->pivot->certificate : false;
         $currentSerial = $currentParticipant ? $currentParticipant->pivot->certificate_serial : null;
         $currentIssuedBy = $currentParticipant ? $currentParticipant->pivot->issued_by : null;
@@ -420,12 +459,14 @@ class TrainingController extends Controller
 
         // Check for duplicate serials in the request
         $serialCounts = array_count_values(array_filter($certificateSerials));
-        $duplicateSerials = array_filter($serialCounts, function($count) { return $count > 1; });
-        
-        if (!empty($duplicateSerials)) {
+        $duplicateSerials = array_filter($serialCounts, function ($count) {
+            return $count > 1;
+        });
+
+        if (! empty($duplicateSerials)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Duplicate certificate serials detected: ' . implode(', ', array_keys($duplicateSerials)),
+                'message' => 'Duplicate certificate serials detected: '.implode(', ', array_keys($duplicateSerials)),
                 'errors' => ['Duplicate serials are not allowed.'],
             ]);
         }
@@ -440,7 +481,7 @@ class TrainingController extends Controller
             $existingSerial = DB::table('training_participant')
                 ->where('certificate_serial', $serial)
                 ->first();
-            
+
             if ($existingSerial) {
                 return response()->json([
                     'success' => false,
@@ -457,14 +498,16 @@ class TrainingController extends Controller
 
             // Check if participant is enrolled in this training and completed
             $participant = $training->participants()->wherePivot('participant_id', $participantId)->first();
-            
-            if (!$participant) {
+
+            if (! $participant) {
                 $errors[] = "Participant ID {$participantId} is not enrolled in this training.";
+
                 continue;
             }
 
             if ($participant->pivot->completion_status !== 'completed') {
                 $errors[] = "Participant ID {$participantId} has not completed the training.";
+
                 continue;
             }
 
@@ -523,16 +566,35 @@ class TrainingController extends Controller
         }
 
         // Update each participant's pivot record
+        $updatedCount = 0;
+        $skippedCount = 0;
+
         foreach ($participantIds as $participantId) {
+            // Check if participant is protected (already completed or has certificate)
+            $participant = $training->participants()->wherePivot('participant_id', $participantId)->first();
+
+            if ($participant && ($participant->pivot->completion_status === 'completed' || $participant->pivot->certificate)) {
+                // If trying to change status from completed/awarded to something else (like enrolled)
+                if ($completionStatus !== 'completed') {
+                    $skippedCount++;
+
+                    continue;
+                }
+            }
+
             $training->participants()->updateExistingPivot($participantId, $pivotData);
+            $updatedCount++;
         }
 
-        $count = count($participantIds);
         $statusLabel = ucfirst(str_replace('_', ' ', $completionStatus));
+        $message = "Updated {$updatedCount} participant(s) to {$statusLabel} status.";
+        if ($skippedCount > 0) {
+            $message .= " {$skippedCount} completed participant(s) were skipped to protect their record.";
+        }
 
         return response()->json([
             'success' => true,
-            'message' => "Updated {$count} participant(s) to {$statusLabel} status.",
+            'message' => $message,
         ]);
     }
 
@@ -541,6 +603,13 @@ class TrainingController extends Controller
      */
     public function storeParticipant(Request $request, Training $training)
     {
+        // Normalize participant type before validation
+        if ($request->has('participant_type')) {
+            $request->merge([
+                'participant_type' => \App\Models\Participant::normalizeParticipantType($request->input('participant_type')),
+            ]);
+        }
+
         $validated = $request->validate([
             'id_no' => 'nullable|string|max:255',
             'first_name' => 'required|string|max:255',
@@ -549,14 +618,14 @@ class TrainingController extends Controller
             'agency_organization' => 'nullable|string|max:255',
             'position_designation' => 'nullable|string|max:255',
             'sex' => 'required|in:male,female',
-            'participant_type' => 'nullable|string|in:DRRMO,DRRMC,CITY HALL OFFICE,BRGY,NATL. AGENCY,OTHER LGU,PRIVATE SECTOR,OTHER/S (school)',
+            'participant_type' => 'nullable|string|in:'.implode(',', \App\Models\Participant::PARTICIPANT_TYPES),
             'vulnerable_groups' => 'nullable|array',
             'vulnerable_groups.*' => 'string|in:Persons with Disabilities (PWDs),Senior Citizens,Pregnant',
         ]);
-    
+
         // Create the new participant
         $participant = Participant::create($validated);
-    
+
         // Automatically associate the participant with the training
         $training->participants()->attach($participant->id, [
             'completion_status' => 'enrolled',
@@ -564,7 +633,7 @@ class TrainingController extends Controller
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-    
+
         return response()->json([
             'success' => true,
             'message' => 'Participant added and enrolled in training successfully.',
@@ -573,36 +642,36 @@ class TrainingController extends Controller
                 'full_name' => $participant->full_name,
                 'agency_organization' => $participant->agency_organization,
                 'position_designation' => $participant->position_designation,
-            ]
+            ],
         ]);
     }
 
     public function uploadExcelParticipants(Request $request, Training $training)
     {
         $request->validate([
-            'excel_file' => 'required|file|mimes:xlsx,xls|max:2048'
+            'excel_file' => 'required|file|mimes:xlsx,xls|max:2048',
         ]);
-    
+
         try {
             $file = $request->file('excel_file');
             $data = Excel::toArray([], $file)[0]; // Get first sheet
-            
+
             // Remove header row
             array_shift($data);
-            
+
             $added = 0;
             $skipped = 0;
             $errors = [];
             $skippedRows = []; // Add this to track skipped participants with details
-            
+
             foreach ($data as $index => $row) {
                 $rowNumber = $index + 2; // +2 because we removed header and arrays are 0-indexed
-                
+
                 // Skip empty rows
                 if (empty(array_filter($row))) {
                     continue;
                 }
-                
+
                 try {
                     // Map Excel columns to participant fields
                     $participantData = [
@@ -613,32 +682,33 @@ class TrainingController extends Controller
                         'agency_organization' => $row[4] ?? null,
                         'position_designation' => $row[5] ?? null,
                         'sex' => strtolower($row[6] ?? ''),
-                        'vulnerable_groups' => isset($row[7]) && !empty(trim($row[7])) ? array_map('trim', explode(',', $row[7])) : [],
-                        'participant_type' => $row[8] ?? null
+                        'vulnerable_groups' => isset($row[7]) && ! empty(trim($row[7])) ? array_map('trim', explode(',', $row[7])) : [],
+                        'participant_type' => \App\Models\Participant::normalizeParticipantType($row[8] ?? null),
                     ];
-                    
+
                     // Validate required fields
                     $validator = Validator::make($participantData, [
                         'first_name' => 'required|string|max:255',
                         'last_name' => 'required|string|max:255',
                         'sex' => 'required|in:male,female',
-                        'participant_type' => 'nullable|string|in:DRRMO,DRRMC,CITY HALL OFFICE,BRGY,NATL. AGENCY,OTHER LGU,PRIVATE SECTOR,OTHER/S (school)'
+                        'participant_type' => 'nullable|string|in:'.implode(',', \App\Models\Participant::PARTICIPANT_TYPES),
                     ]);
-                    
+
                     if ($validator->fails()) {
-                        $errors[] = "Row {$rowNumber}: " . implode(', ', $validator->errors()->all());
+                        $errors[] = "Row {$rowNumber}: ".implode(', ', $validator->errors()->all());
+
                         continue;
                     }
-                    
+
                     // Check if participant already exists (by name and organization)
                     $existingParticipant = Participant::where('first_name', $participantData['first_name'])
                         ->where('last_name', $participantData['last_name'])
                         ->where('agency_organization', $participantData['agency_organization'])
                         ->first();
-                    
+
                     if ($existingParticipant) {
                         // Check if already enrolled in this training
-                        if (!$existingParticipant->trainings()->where('training_id', $training->id)->exists()) {
+                        if (! $existingParticipant->trainings()->where('training_id', $training->id)->exists()) {
                             $existingParticipant->trainings()->attach($training->id);
                             $added++;
                         } else {
@@ -646,8 +716,8 @@ class TrainingController extends Controller
                             // Add detailed information about skipped participant
                             $skippedRows[] = [
                                 'row' => $rowNumber,
-                                'name' => trim(($participantData['first_name'] ?? '') . ' ' . ($participantData['middle_name'] ?? '') . ' ' . ($participantData['last_name'] ?? '')),
-                                'reason' => 'Already enrolled in this training'
+                                'name' => trim(($participantData['first_name'] ?? '').' '.($participantData['middle_name'] ?? '').' '.($participantData['last_name'] ?? '')),
+                                'reason' => 'Already enrolled in this training',
                             ];
                         }
                     } else {
@@ -656,28 +726,28 @@ class TrainingController extends Controller
                         $participant->trainings()->attach($training->id);
                         $added++;
                     }
-                    
+
                 } catch (\Exception $e) {
-                    $errors[] = "Row {$rowNumber}: " . $e->getMessage();
+                    $errors[] = "Row {$rowNumber}: ".$e->getMessage();
                 }
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Excel file processed successfully',
                 'stats' => [
                     'added' => $added,
                     'skipped' => $skipped,
-                    'errors' => count($errors)
+                    'errors' => count($errors),
                 ],
                 'errors' => $errors,
-                'skippedRows' => $skippedRows // Include detailed skipped information
+                'skippedRows' => $skippedRows, // Include detailed skipped information
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error processing Excel file: ' . $e->getMessage()
+                'message' => 'Error processing Excel file: '.$e->getMessage(),
             ], 500);
         }
     }

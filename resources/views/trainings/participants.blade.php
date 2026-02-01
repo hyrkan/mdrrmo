@@ -1,7 +1,6 @@
 <x-layouts.app :title="__('Training Participants')">
     <div class="flex h-full w-full flex-1 flex-col gap-6">
         <!-- Header -->
-        <!-- Header -->
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{{ __('Manage Participants') }}</h1>
@@ -39,6 +38,29 @@
                 </a>
             </div>
         </div>
+
+        <!-- Session Messages -->
+        @if (session('success'))
+            <div class="rounded-lg border border-green-200 bg-green-50 p-4 text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300">
+                <div class="flex items-center">
+                    <svg class="mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    {{ session('success') }}
+                </div>
+            </div>
+        @endif
+
+        @if (session('warning'))
+            <div class="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300">
+                <div class="flex items-center">
+                    <svg class="mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    {{ session('warning') }}
+                </div>
+            </div>
+        @endif
 
         <!-- Add Participant Modal -->
         <div id="addParticipantModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -162,14 +184,9 @@
                                             id="participant_type" 
                                             class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-500 focus:bg-white dark:focus:bg-gray-700 focus:outline-none focus:ring-0 transition-all duration-200">
                                         <option value="" class="text-gray-500">{{ __('Select Participant Type') }}</option>
-                                        <option value="DRRMO">DRRMO</option>
-                                        <option value="DRRMC">DRRMC</option>
-                                        <option value="CITY HALL OFFICE">CITY HALL OFFICE</option>
-                                        <option value="BRGY">BRGY</option>
-                                        <option value="NATL. AGENCY">NATL. AGENCY</option>
-                                        <option value="OTHER LGU">OTHER LGU</option>
-                                        <option value="PRIVATE SECTOR">PRIVATE SECTOR</option>
-                                        <option value="OTHER/S (school)">OTHER/S (school)</option>
+                                        @foreach(\App\Models\Participant::PARTICIPANT_TYPES as $type)
+                                            <option value="{{ $type }}">{{ $type }}</option>
+                                        @endforeach
                                     </select>
                                 </div>
                                 
@@ -299,7 +316,9 @@
                                     <li>• {{ __('Column F: Position/Designation (optional)') }}</li>
                                     <li>• {{ __('Column G: Sex (male/female, required)') }}</li>
                                     <li>• {{ __('Column H: Vulnerable Groups (comma-separated, optional)') }}</li>
-                                    <li>• {{ __('Column I: Participant Type (DRRMO, DRRMC, CITY HALL OFFICE, BRGY, NATL. AGENCY, OTHER LGU, PRIVATE SECTOR, OTHER/S (school), optional)') }}</li>
+                                    <li>• {{ __('Column I: Participant Type (optional)') }}</li>
+                                    <li>&nbsp;&nbsp;{{ __('Allowed values: DRRMO, DRRMC, CITY HALL OFFICE, BRGY, NATL. AGENCY, OTHER LGU, PRIVATE SECTOR, OTHER/S (school)') }}</li>
+                                    <li>&nbsp;&nbsp;<span class="italic text-blue-500">{{ __('Tip: "Barangay" will be automatically converted to "BRGY"') }}</span></li>
                                     <li>• {{ __('Column I: Vulnerable Groups (comma-separated, optional)') }}</li>
                                 </ul>
                                 <p class="text-xs text-blue-600 dark:text-blue-400 mt-2 font-medium">{{ __('First row should contain headers') }}</p>
@@ -410,23 +429,39 @@
                             return;
                         }
 
-                        participantsContainer.innerHTML = data.participants.map(participant => `
-                            <div class="flex items-start space-x-3 p-4 border border-neutral-200 dark:border-neutral-600 rounded-lg bg-neutral-50 dark:bg-gray-800">
-                                <input type="checkbox" 
-                                       id="participant_${participant.id}" 
-                                       name="participant_ids[]" 
-                                       value="${participant.id}"
-                                       ${participant.is_enrolled ? 'checked' : ''}
-                                       class="mt-1 rounded border-neutral-300 dark:border-neutral-600 text-blue-600 focus:ring-blue-500">
-                                <div class="flex-1 min-w-0">
-                                    <label for="participant_${participant.id}" class="block text-sm font-medium text-neutral-900 dark:text-neutral-100 cursor-pointer">
-                                        ${participant.full_name}
-                                    </label>
-                                    <p class="text-sm text-neutral-500 dark:text-neutral-400">${participant.agency_organization || 'No organization'}</p>
-                                    ${participant.position_designation ? `<p class="text-xs text-neutral-400 dark:text-neutral-500">${participant.position_designation}</p>` : ''}
+                        participantsContainer.innerHTML = data.participants.map(participant => {
+                            const isProtected = participant.completion_status === 'completed' || participant.has_certificate;
+                            
+                            return `
+                                <div class="flex items-start space-x-3 p-4 border border-neutral-200 dark:border-neutral-600 rounded-lg ${isProtected ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800' : 'bg-neutral-50 dark:bg-gray-800'}">
+                                    <div class="relative flex items-center h-5">
+                                        <input type="checkbox" 
+                                               id="participant_${participant.id}" 
+                                               name="participant_ids[]" 
+                                               value="${participant.id}"
+                                               ${participant.is_enrolled ? 'checked' : ''}
+                                               ${isProtected ? 'disabled' : ''}
+                                               class="mt-1 rounded border-neutral-300 dark:border-neutral-600 text-blue-600 focus:ring-blue-500 ${isProtected ? 'opacity-50 cursor-not-allowed' : ''}">
+                                        ${isProtected ? `<input type="hidden" name="participant_ids[]" value="${participant.id}">` : ''}
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <label for="participant_${participant.id}" class="block text-sm font-medium text-neutral-900 dark:text-neutral-100 ${isProtected ? '' : 'cursor-pointer'}">
+                                                ${participant.full_name}
+                                            </label>
+                                            ${participant.has_certificate ? 
+                                                '<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Awarded</span>' : 
+                                                (participant.completion_status === 'completed' ? 
+                                                    '<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Completed</span>' : '')
+                                            }
+                                        </div>
+                                        <p class="text-sm text-neutral-500 dark:text-neutral-400">${participant.agency_organization || 'No organization'}</p>
+                                        ${participant.position_designation ? `<p class="text-xs text-neutral-400 dark:text-neutral-500">${participant.position_designation}</p>` : ''}
+                                        ${isProtected ? `<p class="text-[10px] text-blue-600 dark:text-blue-400 mt-1 font-medium">Cannot be removed - already completed</p>` : ''}
+                                    </div>
                                 </div>
-                            </div>
-                        `).join('');
+                            `;
+                        }).join('');
                     })
                     .catch(error => {
                         console.error('Error loading participants:', error);

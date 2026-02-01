@@ -65,6 +65,13 @@ class ParticipantController extends Controller
      */
     public function store(Request $request)
     {
+        // Normalize participant type before validation
+        if ($request->has('participant_type')) {
+            $request->merge([
+                'participant_type' => \App\Models\Participant::normalizeParticipantType($request->input('participant_type'))
+            ]);
+        }
+
         $validated = $request->validate([
             'id_no' => 'nullable|string|max:255',
             'first_name' => 'required|string|max:255',
@@ -73,7 +80,7 @@ class ParticipantController extends Controller
             'agency_organization' => 'nullable|string|max:255',
             'position_designation' => 'nullable|string|max:255',
             'sex' => 'required|in:male,female',
-            'participant_type' => 'nullable|string|in:DRRMO,DRRMC,CITY HALL OFFICE,BRGY,NATL. AGENCY,OTHER LGU,PRIVATE SECTOR,OTHER/S (school)',
+            'participant_type' => 'nullable|string|in:' . implode(',', \App\Models\Participant::PARTICIPANT_TYPES),
             'vulnerable_groups' => 'nullable|array',
             'vulnerable_groups.*' => 'string|in:Persons with Disabilities (PWDs),Senior Citizens,Pregnant',
         ]);
@@ -123,6 +130,13 @@ class ParticipantController extends Controller
      */
     public function update(Request $request, Participant $participant)
     {
+        // Normalize participant type before validation
+        if ($request->has('participant_type')) {
+            $request->merge([
+                'participant_type' => \App\Models\Participant::normalizeParticipantType($request->input('participant_type'))
+            ]);
+        }
+
         $validated = $request->validate([
             'id_no' => 'nullable|string|max:255',
             'first_name' => 'required|string|max:255',
@@ -132,7 +146,7 @@ class ParticipantController extends Controller
             'position_designation' => 'nullable|string|max:255',
             'sex' => 'required|in:male,female',
             'vulnerable_groups' => 'nullable|array',
-            'participant_type' => 'nullable|string|in:DRRMO,DRRMC,CITY HALL OFFICE,BRGY,NATL. AGENCY,OTHER LGU,PRIVATE SECTOR,OTHER/S (school)',
+            'participant_type' => 'nullable|string|in:' . implode(',', \App\Models\Participant::PARTICIPANT_TYPES),
             'vulnerable_groups.*' => 'string|in:Persons with Disabilities (PWDs),Senior Citizens,Pregnant',
         ]);
 

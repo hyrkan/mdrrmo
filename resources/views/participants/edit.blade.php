@@ -132,14 +132,9 @@
                                 name="participant_type" 
                                 class="w-full rounded-lg border-0 bg-neutral-50 px-4 py-3 text-neutral-900 ring-1 ring-inset ring-neutral-300 focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-600 dark:bg-neutral-800 dark:text-white dark:ring-neutral-600 dark:focus:bg-neutral-700 dark:focus:ring-blue-500 sm:text-sm">
                             <option value="">{{ __('Select participant type') }}</option>
-                            <option value="DRRMO" {{ old('participant_type', $participant->participant_type) === 'DRRMO' ? 'selected' : '' }}>DRRMO</option>
-                            <option value="DRRMC" {{ old('participant_type', $participant->participant_type) === 'DRRMC' ? 'selected' : '' }}>DRRMC</option>
-                            <option value="CITY HALL OFFICE" {{ old('participant_type', $participant->participant_type) === 'CITY HALL OFFICE' ? 'selected' : '' }}>CITY HALL OFFICE</option>
-                            <option value="BRGY" {{ old('participant_type', $participant->participant_type) === 'BRGY' ? 'selected' : '' }}>BRGY</option>
-                            <option value="NATL. AGENCY" {{ old('participant_type', $participant->participant_type) === 'NATL. AGENCY' ? 'selected' : '' }}>NATL. AGENCY</option>
-                            <option value="OTHER LGU" {{ old('participant_type', $participant->participant_type) === 'OTHER LGU' ? 'selected' : '' }}>OTHER LGU</option>
-                            <option value="PRIVATE SECTOR" {{ old('participant_type', $participant->participant_type) === 'PRIVATE SECTOR' ? 'selected' : '' }}>PRIVATE SECTOR</option>
-                            <option value="OTHER/S (school)" {{ old('participant_type', $participant->participant_type) === 'OTHER/S (school)' ? 'selected' : '' }}>OTHER/S (school)</option>
+                            @foreach(\App\Models\Participant::PARTICIPANT_TYPES as $type)
+                                <option value="{{ $type }}" {{ old('participant_type', $participant->participant_type) === $type ? 'selected' : '' }}>{{ $type }}</option>
+                            @endforeach
                         </select>
                         @error('participant_type')
                             <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>

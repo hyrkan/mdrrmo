@@ -28,7 +28,8 @@ class TrainingController extends Controller
                     ->orWhere('requesting_party', 'LIKE', "%{$search}%")
                     ->orWhere('venue', 'LIKE', "%{$search}%")
                     ->orWhere('course_facilitator', 'LIKE', "%{$search}%")
-                    ->orWhere('instructor', 'LIKE', "%{$search}%");
+                    ->orWhere('instructor', 'LIKE', "%{$search}%")
+                    ->orWhere('course_monitor', 'LIKE', "%{$search}%");
             });
         }
 
@@ -130,8 +131,15 @@ class TrainingController extends Controller
             'requesting_party' => 'nullable|string|max:255',
             'venue' => 'nullable|string|max:255',
             'course_facilitator' => 'nullable|string|max:255',
-            'instructor' => 'nullable|string|max:255',
+            'instructor' => 'nullable|array',
+            'instructor.*' => 'nullable|string|max:255',
+            'course_monitor' => 'nullable|string|max:255',
         ]);
+
+        // Filter out empty instructors
+        if (isset($validated['instructor'])) {
+            $validated['instructor'] = array_values(array_filter($validated['instructor']));
+        }
 
         // Sort dates to ensure chronological order
         $validated['dates'] = collect($validated['dates'])->sort()->values()->toArray();
@@ -172,8 +180,15 @@ class TrainingController extends Controller
             'requesting_party' => 'nullable|string|max:255',
             'venue' => 'nullable|string|max:255',
             'course_facilitator' => 'nullable|string|max:255',
-            'instructor' => 'nullable|string|max:255',
+            'instructor' => 'nullable|array',
+            'instructor.*' => 'nullable|string|max:255',
+            'course_monitor' => 'nullable|string|max:255',
         ]);
+
+        // Filter out empty instructors
+        if (isset($validated['instructor'])) {
+            $validated['instructor'] = array_values(array_filter($validated['instructor']));
+        }
 
         // Sort dates to ensure chronological order
         $validated['dates'] = collect($validated['dates'])->sort()->values()->toArray();

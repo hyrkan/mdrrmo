@@ -29,11 +29,13 @@ class Training extends Model
         'venue',
         'course_facilitator',
         'instructor',
+        'course_monitor',
         'training_classification'
     ];
 
     protected $casts = [
         'dates' => 'array', // Cast JSON field to array
+        'instructor' => 'array',
     ];
 
     // Accessor to get formatted date range

@@ -88,7 +88,8 @@ class Participant extends Model
     protected function participantType(): Attribute
     {
         return Attribute::make(
-            set: fn ($value) => self::normalizeParticipantType($value),
+            null,
+            fn ($value) => self::normalizeParticipantType($value)
         );
     }
 
@@ -143,7 +144,7 @@ class Participant extends Model
     public function getVulnerableGroupsFormattedAttribute()
     {
         if (empty($this->vulnerable_groups) || ! is_array($this->vulnerable_groups)) {
-            return 'None';
+            return 'N/A';
         }
 
         return implode(', ', $this->vulnerable_groups);

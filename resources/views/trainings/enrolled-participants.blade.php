@@ -57,6 +57,7 @@
                     </svg>
                     {{ __('Back to Training') }}
                 </a>
+            </div>
         </div>
 
         <!-- Session Messages -->
@@ -280,7 +281,7 @@
                                         </a>
                                     </div>
 
-                                    @if($participant->vulnerable_groups)
+                                    @if($participant->vulnerable_groups && count($participant->vulnerable_groups) > 0)
                                         <div class="mt-1">
                                             @foreach($participant->vulnerable_groups as $group)
                                                 <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200 mr-1">
@@ -288,6 +289,8 @@
                                                 </span>
                                             @endforeach
                                         </div>
+                                    @else
+                                        <span class="text-xs text-neutral-400">N/A</span>
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 text-sm text-neutral-900 dark:text-neutral-100 break-words">

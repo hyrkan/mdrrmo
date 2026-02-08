@@ -185,7 +185,7 @@
                                             class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-500 focus:bg-white dark:focus:bg-gray-700 focus:outline-none focus:ring-0 transition-all duration-200">
                                         <option value="" class="text-gray-500">{{ __('Select Participant Type') }}</option>
                                         @foreach(\App\Models\Participant::PARTICIPANT_TYPES as $type)
-                                            <option value="{{ $type }}">{{ $type }}</option>
+                                            <option value="{{ $type }}">{{ $type === 'BRGY' ? 'BARANGAY' : $type }}</option>
                                         @endforeach
                                     </select>
                                 </div>

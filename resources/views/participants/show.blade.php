@@ -86,7 +86,7 @@
                             <dd class="mt-1">
                                 @if($participant->participant_type)
                                     <span class="inline-flex px-3 py-1 text-sm font-medium rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400">
-                                        {{ $participant->participant_type }}
+                                        {{ $participant->participant_type === 'BRGY' ? 'BARANGAY' : $participant->participant_type }}
                                     </span>
                                 @else
                                     <span class="text-sm text-neutral-500 dark:text-neutral-400 italic">{{ __('Not specified') }}</span>
@@ -136,7 +136,7 @@
                                         @endforeach
                                     </div>
                                 @else
-                                    <span class="text-sm text-neutral-500 dark:text-neutral-400 italic">{{ __('None specified') }}</span>
+                                    <span class="text-sm text-neutral-500 dark:text-neutral-400 italic">{{ __('N/A') }}</span>
                                 @endif
                             </dd>
                         </div>

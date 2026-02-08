@@ -99,11 +99,27 @@
                         @endif
                         @if ($training->instructor)
                             <div>
-                                <dt class="text-sm font-medium text-neutral-500 dark:text-neutral-400">{{ __('Instructor') }}</dt>
-                                <dd class="mt-1 text-sm text-neutral-900 dark:text-neutral-100">{{ $training->instructor }}</dd>
+                                <dt class="text-sm font-medium text-neutral-500 dark:text-neutral-400">{{ __('Instructors') }}</dt>
+                                <dd class="mt-1 text-sm text-neutral-900 dark:text-neutral-100">
+                                    @if(is_array($training->instructor))
+                                        <ul class="list-inside list-disc">
+                                            @foreach($training->instructor as $instructor)
+                                                <li>{{ $instructor }}</li>
+                                            @endforeach
+                                        </ul>
+                                    @else
+                                        {{ $training->instructor }}
+                                    @endif
+                                </dd>
                             </div>
                         @endif
-                        @if (!$training->course_facilitator && !$training->instructor)
+                        @if ($training->course_monitor)
+                            <div>
+                                <dt class="text-sm font-medium text-neutral-500 dark:text-neutral-400">{{ __('Course Monitor') }}</dt>
+                                <dd class="mt-1 text-sm text-neutral-900 dark:text-neutral-100">{{ $training->course_monitor }}</dd>
+                            </div>
+                        @endif
+                        @if (!$training->course_facilitator && !$training->instructor && !$training->course_monitor)
                             <div class="text-sm text-neutral-500 dark:text-neutral-400">
                                 {{ __('No personnel information available') }}
                             </div>

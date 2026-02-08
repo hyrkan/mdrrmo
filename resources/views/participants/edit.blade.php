@@ -133,7 +133,7 @@
                                 class="w-full rounded-lg border-0 bg-neutral-50 px-4 py-3 text-neutral-900 ring-1 ring-inset ring-neutral-300 focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-600 dark:bg-neutral-800 dark:text-white dark:ring-neutral-600 dark:focus:bg-neutral-700 dark:focus:ring-blue-500 sm:text-sm">
                             <option value="">{{ __('Select participant type') }}</option>
                             @foreach(\App\Models\Participant::PARTICIPANT_TYPES as $type)
-                                <option value="{{ $type }}" {{ old('participant_type', $participant->participant_type) === $type ? 'selected' : '' }}>{{ $type }}</option>
+                                <option value="{{ $type }}" {{ old('participant_type', $participant->participant_type) === $type ? 'selected' : '' }}>{{ $type === 'BRGY' ? 'BARANGAY' : $type }}</option>
                             @endforeach
                         </select>
                         @error('participant_type')

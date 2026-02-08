@@ -175,14 +175,58 @@
                     </div>
 
                     <div class="md:col-span-2">
-                        <label for="instructor" class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">{{ __('Instructor') }}</label>
+                        <label for="course_monitor" class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">{{ __('Course Monitor') }}</label>
                         <input type="text" 
-                               id="instructor" 
-                               name="instructor" 
-                               value="{{ old('instructor', $training->instructor) }}" 
-                               placeholder="{{ __('Enter instructor name (optional)') }}" 
+                               id="course_monitor" 
+                               name="course_monitor" 
+                               value="{{ old('course_monitor', $training->course_monitor) }}" 
+                               placeholder="{{ __('Enter course monitor name') }}" 
                                class="block w-full rounded-lg border-0 bg-neutral-50 px-4 py-3 text-neutral-900 ring-1 ring-inset ring-neutral-300 placeholder:text-neutral-400 focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-600 dark:bg-neutral-800 dark:text-white dark:ring-neutral-600 dark:placeholder:text-neutral-500 dark:focus:bg-neutral-700 dark:focus:ring-blue-500 sm:text-sm sm:leading-6">
+                        @error('course_monitor')
+                            <div class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">{{ __('Instructors') }}</label>
+                        <div id="instructors-container" class="space-y-3">
+                            @php
+                                $instructors = old('instructor', $training->instructor);
+                                if (!is_array($instructors)) {
+                                    $instructors = $instructors ? [$instructors] : [null];
+                                }
+                            @endphp
+                            @foreach ($instructors as $index => $instructor)
+                                <div class="flex items-center gap-3 instructor-field">
+                                    <input type="text" 
+                                           name="instructor[]" 
+                                           value="{{ $instructor }}"
+                                           placeholder="{{ __('Enter instructor name') }}" 
+                                           class="flex-1 rounded-lg border-0 bg-neutral-50 px-4 py-3 text-neutral-900 ring-1 ring-inset ring-neutral-300 focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-600 dark:bg-neutral-800 dark:text-white dark:ring-neutral-600 dark:focus:bg-neutral-700 dark:focus:ring-blue-500 sm:text-sm sm:leading-6">
+                                    @if ($index === 0)
+                                        <button type="button" 
+                                                onclick="addInstructorField()" 
+                                                class="inline-flex items-center justify-center rounded-lg bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                                            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                            </svg>
+                                        </button>
+                                    @else
+                                        <button type="button" 
+                                                onclick="removeInstructorField(this)" 
+                                                class="inline-flex items-center justify-center rounded-lg bg-red-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
                         @error('instructor')
+                            <div class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                        @enderror
+                        @error('instructor.*')
                             <div class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
                         @enderror
                     </div>
@@ -205,8 +249,6 @@
             </form>
         </div>
     </div>
-
-    // Update the JavaScript around line 185
     <script>
         let dateIndex = {{ count(old('dates', $training->dates ?? [1])) }};
     
@@ -251,7 +293,29 @@
         function removeDateField(button) {
             button.closest('.date-field').remove();
         }
-    
-        // Remove the DOMContentLoaded event listener that enforces date validation
+
+        function addInstructorField() {
+            const container = document.getElementById('instructors-container');
+            const newField = document.createElement('div');
+            newField.className = 'flex items-center gap-3 instructor-field';
+            newField.innerHTML = `
+                <input type="text" 
+                       name="instructor[]" 
+                       placeholder="{{ __('Enter instructor name') }}" 
+                       class="flex-1 rounded-lg border-0 bg-neutral-50 px-4 py-3 text-neutral-900 ring-1 ring-inset ring-neutral-300 focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-600 dark:bg-neutral-800 dark:text-white dark:ring-neutral-600 dark:focus:bg-neutral-700 dark:focus:ring-blue-500 sm:text-sm sm:leading-6">
+                <button type="button" 
+                        onclick="removeInstructorField(this)" 
+                        class="inline-flex items-center justify-center rounded-lg bg-red-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </button>
+            `;
+            container.appendChild(newField);
+        }
+
+        function removeInstructorField(button) {
+            button.closest('.instructor-field').remove();
+        }
     </script>
 </x-layouts.app>
